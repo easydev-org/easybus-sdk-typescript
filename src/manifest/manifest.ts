@@ -1,0 +1,118 @@
+// The YAML manifest -> extension Config builder, the TS twin of the Go
+// `easybus-sdk/manifest` package. The manifest declares id/version/tools/
+// variables/config/lifecycle/hooks; handlers are bound by name.
+
+import { parse as parseYaml } from 'yaml'
+import type { Config, ConfigSpec, HookSchemas, OnCallHook, OnConfigChange, OnEventHook, OnLifecycle, ToolSpec, VariableSpec } from '../extension/types.js'
+
+export interface ManifestTool {
+  name: string
+  description?: string
+  descriptions?: Record<string, string>
+  input_schema?: Record<string, unknown>
+  required_config?: string[]
+}
+
+export interface ManifestVariable {
+  name: string
+  description?: string
+  descriptions?: Record<string, string>
+  scope?: string
+}
+
+export interface ManifestConfig {
+  name: string
+  type?: string
+  kind?: string
+  capability?: string
+  enum_values?: string[]
+  default?: unknown
+  description?: string
+  descriptions?: Record<string, string>
+  scope?: string
+}
+
+export interface ManifestHooks {
+  call?: string[]
+  event?: string[]
+  call_schemas?: Record<string, Record<string, unknown>>
+  event_schemas?: Record<string, Record<string, unknown>>
+}
+
+/** Manifest is the YAML-declared extension protocol. */
+export interface Manifest {
+  id: string
+  version: string
+  tools?: ManifestTool[]
+  variables?: ManifestVariable[]
+  config?: ManifestConfig[]
+  lifecycle?: string[]
+  hooks?: ManifestHooks
+}
+
+/** ParseManifest parses YAML manifest text. */
+export function parseManifest(data: string): Manifest {
+  const m = parseYaml(data) as Manifest
+  if (!m || !m.id) throw new Error('manifest: id is required')
+  return m
+}
+
+/** Bindings carries the name-keyed handlers/resolvers used to build a Config. */
+export interface Bindings {
+  handlers: Record<string, Omit<ToolSpec, 'description' | 'descriptions' | 'inputSchema' | 'requiredConfig'>>
+  variables?: Record<string, VariableSpec>
+  onCallHook?: OnCallHook
+  onEventHook?: OnEventHook
+  onConfigChange?: OnConfigChange
+  onLifecycle?: OnLifecycle
+}
+
+/** BuildConfig builds an extension.Config from the manifest + bindings. */
+export function buildConfig(m: Manifest, b: Bindings): Config {
+  const tools: Record<string, ToolSpec> = {}
+  for (const t of m.tools ?? []) {
+    const h = b.handlers[t.name]
+    if (!h) continue
+    tools[t.name] = {
+      ...h,
+      description: t.description ?? '',
+      descriptions: t.descriptions ?? {},
+      inputSchema: t.input_schema ?? {},
+      requiredConfig: t.required_config ?? [],
+    }
+  }
+  const variables: Record<string, VariableSpec> = {}
+  for (const v of m.variables ?? []) {
+    const r = b.variables?.[v.name]
+    variables[v.name] = { description: v.description ?? '', descriptions: v.descriptions ?? {}, scope: v.scope || 'global', ...(r?.resolve ? { resolve: r.resolve } : {}) }
+  }
+  const config: Record<string, ConfigSpec> = {}
+  for (const c of m.config ?? []) {
+    config[c.name] = {
+      description: c.description ?? '',
+      descriptions: c.descriptions ?? {},
+      type: c.type ?? 'string',
+      kind: c.kind ?? 'value',
+      capability: c.capability ?? '',
+      enumValues: c.enum_values ?? [],
+      default: c.default,
+      scope: c.scope ?? 'global',
+    }
+  }
+  const hookSchemas: HookSchemas = { call: m.hooks?.call_schemas ?? {}, event: m.hooks?.event_schemas ?? {} }
+  return {
+    id: m.id,
+    version: m.version,
+    tools,
+    variables,
+    config,
+    callHooks: m.hooks?.call ?? [],
+    eventHooks: m.hooks?.event ?? [],
+    lifecycle: m.lifecycle ?? [],
+    hookSchemas,
+    onCallHook: b.onCallHook,
+    onEventHook: b.onEventHook,
+    onConfigChange: b.onConfigChange,
+    onLifecycle: b.onLifecycle,
+  }
+}
