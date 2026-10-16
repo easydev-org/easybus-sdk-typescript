@@ -16,7 +16,7 @@ import { jetstream, jetstreamManager, type JetStreamClient, type JetStreamManage
 import { Kvm, type KV } from '@nats-io/kv'
 import { Objm, type ObjectStore as NatsObjectStore } from '@nats-io/obj'
 
-import { create, toJson, fromJson } from '@bufbuild/protobuf'
+import { create, toJson } from '@bufbuild/protobuf'
 import { ValueSchema, type Value } from '@bufbuild/protobuf/wkt'
 
 import type {
@@ -37,6 +37,7 @@ import {
   encodeEnvelope,
   decodeEnvelope,
   envelopeKindString,
+  jsonToValue,
   type Envelope,
 } from '../../wire.js'
 import { subjectTenant, tenantPrefix, sessionToken } from '../../protocol/protocol.js'
@@ -122,12 +123,6 @@ function dlqSubjectFor(subject: string): string {
 
 function tenantOf(ch: string, explicit?: string): string {
   return explicit ?? subjectTenant(ch)
-}
-
-/** jsonToValue wraps a JSON body into a google.protobuf.Value. */
-function jsonToValue(payload: unknown): Value | undefined {
-  if (payload === undefined) return undefined
-  return fromJson(ValueSchema, payload as never)
 }
 
 /** valueToJson unwraps a google.protobuf.Value back into a plain JSON body. */
@@ -320,7 +315,7 @@ class NatsBus implements Bus {
       const cname = `replay-${sessionToken(ch)}`
       await this.jsm.consumers.add(name, { durable_name: cname, filter_subject: ch, ack_policy: 'none', deliver_policy: 'all' }).catch(() => {})
       const consumer = await this.js.consumers.get(name, cname)
-      const iter = await consumer.fetch({ max_messages: 1000, expires: 500 })
+      const iter = await consumer.fetch({ max_messages: 1000, expires: 1000 })
       for await (const m of iter) {
         try {
           out.push(decode(m.data))
@@ -383,20 +378,42 @@ class NatsBus implements Bus {
     // ONE iterator for the watcher's lifetime (a KV watcher, like a core sub,
     // permits a single concurrent iterator).
     const iter = watcher[Symbol.asyncIterator]()
+    // The Go SDK marks snapshot entries with IsUpdate=false and emits a
+    // synthetic Done boundary BEFORE the first live update. The JS KV watcher
+    // instead flips isUpdate on the LAST snapshot entry, so we track the
+    // snapshot boundary ourselves: while `count` snapshot entries are pending,
+    // entries are snapshots (isUpdate=false); once we've consumed them, we
+    // emit the Done marker and every later entry is a live update.
+    let snapshotsLeft = await kv
+      .status()
+      .then(st => (st as { values?: number }).values ?? 0)
+      .catch(() => 0)
+    let doneEmitted = false
     const events: AsyncIterable<KvEvent> = {
       [Symbol.asyncIterator]() {
         return {
           next: async (): Promise<IteratorResult<KvEvent>> => {
+            if (!doneEmitted && snapshotsLeft <= 0) {
+              doneEmitted = true
+              return { value: { key: '', value: '', revision: 0, deleted: false, isUpdate: false, done: true }, done: false }
+            }
             const r = await iter.next()
             if (r.done || !r.value) return { value: undefined, done: true }
             const e = r.value
+            const isSnapshot = !doneEmitted
+            if (isSnapshot) {
+              snapshotsLeft--
+              if (snapshotsLeft <= 0) {
+                // The Done marker is delivered on the NEXT next() call.
+              }
+            }
             return {
               value: {
                 key: e.key,
                 value: typeof e.string === 'function' ? e.string() : '',
                 revision: e.revision,
                 deleted: e.operation === 'DEL' || e.operation === 'PURGE',
-                isUpdate: true,
+                isUpdate: !isSnapshot,
                 done: false,
               },
               done: false,

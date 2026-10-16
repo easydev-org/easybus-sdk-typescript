@@ -3,7 +3,12 @@
 // resolves variables, fires hooks, interrupts, and drives the mailbox.
 
 import type { Bus, Subscription } from '../bus/bus.js'
-import type { Envelope } from '../wire.js'
+import { ConfigAuthority } from './config.js'
+export { ConfigError } from './config.js'
+import { SessionLease } from './lease.js'
+export { LEASE_BUCKET, LEASE_TTL_DEFAULT_MS } from './lease.js'
+import type { Envelope, ExtensionManifest } from '../wire.js'
+export type { ExtensionManifest }
 import { valueToJson } from '../transport/nats/nats.js'
 import { codeFromWire } from '../protocol/code.js'
 import {
@@ -37,19 +42,6 @@ export interface ToolResult {
   error?: { code: string; message: string }
 }
 
-/** A discovered extension manifest (open shape; the fields the agent reads). */
-export interface ExtensionManifest {
-  id: string
-  version: string
-  capabilities?: string[]
-  features?: string[]
-  tools?: Array<{ name: string; description?: string; descriptions?: Record<string, string>; input_schema?: Record<string, unknown>; required_config?: string[] }>
-  config?: Array<Record<string, unknown>>
-  prompt_variables?: Array<Record<string, unknown>>
-  lifecycle?: string[]
-  hooks?: Record<string, unknown>
-}
-
 /** A delivered mailbox message. */
 export interface MailboxMessage {
   id: string
@@ -67,8 +59,55 @@ export class Agent {
   private livePresenceKeys = new Map<string, Set<string>>()
   private presenceStarted = false
   private presenceWatch: { stop: () => void } | null = null
+  private configAuthority: ConfigAuthority | null = null
+  private readonly lease: SessionLease
 
-  constructor(private readonly b: Bus) {}
+  constructor(private readonly b: Bus) {
+    this.lease = new SessionLease(b)
+  }
+
+  /** ClaimSession atomically claims the session's run lease (revision or null). */
+  claimSession(ctx: AbortSignal, tenant: string, sessionName: string, ttlMs?: number): Promise<number | null> {
+    return this.lease.claim(ctx, tenant, sessionName, ttlMs)
+  }
+  /** RenewSession extends the lease via CAS (new revision or null). */
+  renewSession(ctx: AbortSignal, tenant: string, sessionName: string, revision: number, ttlMs?: number): Promise<number | null> {
+    return this.lease.renew(ctx, tenant, sessionName, revision, ttlMs)
+  }
+  /** ReleaseSession frees the run lease. */
+  releaseSession(ctx: AbortSignal, tenant: string, sessionName: string): Promise<void> {
+    return this.lease.release(ctx, tenant, sessionName)
+  }
+  /** IsSessionRunning reports whether the run lease is held. */
+  isSessionRunning(ctx: AbortSignal, tenant: string, sessionName: string): Promise<boolean> {
+    return this.lease.isRunning(ctx, tenant, sessionName)
+  }
+  /** WithSessionLease runs fn under the exclusive cross-replica lease. */
+  withSessionLease(ctx: AbortSignal, tenant: string, sessionName: string, fn: (ctx: AbortSignal) => Promise<void>, ttlMs?: number): Promise<{ acquired: boolean; lost?: boolean }> {
+    return this.lease.withSessionLease(ctx, tenant, sessionName, fn, ttlMs)
+  }
+
+  /** ServeConfig turns the agent into the config authority (idempotent). */
+  serveConfig(defaultAck: boolean): void {
+    if (!this.configAuthority) this.configAuthority = new ConfigAuthority(this.b, defaultAck)
+    this.configAuthority.started = true
+  }
+
+  /** SetConfig validates against the manifest, persists, then delivers. */
+  async setConfig(ctx: AbortSignal, tenant: string, extId: string, name: string, value: unknown, sessionName = '', manifest?: ExtensionManifest, ack?: boolean): Promise<void> {
+    if (!this.configAuthority || !this.configAuthority.started) {
+      throw new Error('invalid_argument: ServeConfig() was not called')
+    }
+    const m = manifest ?? this.manifest(extId)
+    if (!m) throw new Error(`not_found: no manifest for ${extId}; Discover() first`)
+    await this.configAuthority.declare(tenant, m)
+    await this.configAuthority.set(ctx, tenant, extId, name, value, sessionName, ack)
+  }
+
+  /** DropSessionConfig removes per-session overrides when a session ends. */
+  async dropSessionConfig(ctx: AbortSignal, tenant: string, extId: string, sessionName: string): Promise<void> {
+    await this.configAuthority?.dropSessionConfig(ctx, tenant, extId, sessionName)
+  }
 
   bus(): Bus {
     return this.b

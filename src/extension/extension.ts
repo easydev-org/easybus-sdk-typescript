@@ -57,6 +57,16 @@ function resolveReplicaId(explicit?: string): string {
   return sanitizeReplicaId(id)
 }
 
+/** unwrapValue turns a google.protobuf.Value (as it appears after a single
+ *  valueToJson) into the plain JSON value. */
+function unwrapValue(v: unknown): unknown {
+  if (v && typeof v === 'object' && (v as { $typeName?: string }).$typeName === 'google.protobuf.Value') {
+    const kind = (v as { kind?: { case?: string; value?: unknown } }).kind
+    if (kind && 'value' in kind) return kind.value
+  }
+  return v
+}
+
 /** validateHookSchema implements the small declarative JSON-schema subset. */
 export function validateHookSchema(schema: Record<string, unknown> | undefined, value: unknown, path: string): string {
   if (!schema) return ''
@@ -439,15 +449,24 @@ export class Extension {
         const env = await sub.next(ctx)
         if (!env) return
         if (!env.replyTo) continue
-        const set = valueToJson(env.payload) as { name: string; scope?: string; value: unknown; session_name?: string; ack?: boolean }
+        const raw = valueToJson(env.payload) as { name: string; scope?: string; value?: unknown; session_name?: string; ack?: boolean }
         const tenant = env.tenant || subjectTenant(env.ch)
-        this.configStore.applySet(this.cfg.config ?? {}, tenant, set.name, set.value, set.scope === 'session' ? set.session_name : undefined)
+        const name = raw.name
+        const scope = raw.scope ?? 'global'
+        const sessionName = raw.session_name ?? env.sessionName ?? ''
+        // raw.value is a google.protobuf.Value (the nested Value survives the
+        // outer unwrap); unwrap it to the plain JSON value.
+        const value = unwrapValue(raw.value)
+        this.configStore.applySet(this.cfg.config ?? {}, tenant, name, value, scope === 'session' ? sessionName : undefined)
         let rejectErr: Error | null = null
         if (this.cfg.onConfigChange) {
-          rejectErr = await this.cfg.onConfigChange(ctx, set.name, set.value, set.session_name ?? '', (n, s) => this.configStore.get(this.cfg.config ?? {}, tenant, n, s)).then(() => null).catch(e => (e instanceof Error ? e : new Error(String(e))))
+          rejectErr = await this.cfg
+            .onConfigChange(ctx, name, value, sessionName, (n, s) => this.configStore.get(this.cfg.config ?? {}, tenant, n, s))
+            .then(() => null)
+            .catch(e => (e instanceof Error ? e : new Error(String(e))))
         }
-        if (rejectErr) this.configStore.rollbackSet(this.cfg.config ?? {}, tenant, set.name, set.scope === 'session' ? set.session_name : undefined)
-        if (set.ack) {
+        if (rejectErr) this.configStore.rollbackSet(this.cfg.config ?? {}, tenant, name, scope === 'session' ? sessionName : undefined)
+        if (raw.ack) {
           await this.b.publish(ctx, env.replyTo, rejectErr ? { ok: false, error: { code: codeToWire('CODE_INTERNAL'), message: rejectErr.message } } : { ok: true }, { tenant })
         }
       }

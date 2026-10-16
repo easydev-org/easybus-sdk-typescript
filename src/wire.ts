@@ -10,6 +10,7 @@
 // `encodeMessage`/`decodeMessage` below.
 
 import { fromJson, toJson, type JsonValue, type MessageShape, type DescMessage } from '@bufbuild/protobuf'
+import { ValueSchema, type Value } from '@bufbuild/protobuf/wkt'
 import {
   Envelope_Kind,
   ConfigSetSchema,
@@ -123,6 +124,11 @@ const ENVELOPE_KIND_FROM_STRING: Record<string, Envelope_Kind> = {
   req: Envelope_Kind.REQ,
   pub: Envelope_Kind.PUB,
   queue: Envelope_Kind.QUEUE,
+}
+
+/** jsonToValue wraps a JSON body into a google.protobuf.Value. */
+export function jsonToValue(payload: unknown): Value {
+  return fromJson(ValueSchema, (payload ?? {}) as JsonValue)
 }
 
 /** encodeEnvelope builds the Go-compatible JSON bytes for an Envelope. */
