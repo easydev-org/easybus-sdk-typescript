@@ -309,25 +309,27 @@ class NatsBus implements Bus {
   async kvWatch(ctx: AbortSignal, bucket: string, keys: string): Promise<{ events: AsyncIterable<KvEvent>; stop: () => void }> {
     const kv = await this.kv(bucket)
     const watcher = await kv.watch({ key: keys })
+    // ONE iterator for the watcher's lifetime (a KV watcher, like a core sub,
+    // permits a single concurrent iterator).
+    const iter = watcher[Symbol.asyncIterator]()
     const events: AsyncIterable<KvEvent> = {
       [Symbol.asyncIterator]() {
         return {
           next: async (): Promise<IteratorResult<KvEvent>> => {
-            for await (const e of watcher) {
-              if (!e) return { value: { key: '', value: '', revision: 0, deleted: false, isUpdate: false, done: true }, done: false }
-              return {
-                value: {
-                  key: e.key,
-                  value: typeof e.string === 'function' ? e.string() : '',
-                  revision: e.revision,
-                  deleted: e.operation === 'DEL' || e.operation === 'PURGE',
-                  isUpdate: true,
-                  done: false,
-                },
+            const r = await iter.next()
+            if (r.done || !r.value) return { value: undefined, done: true }
+            const e = r.value
+            return {
+              value: {
+                key: e.key,
+                value: typeof e.string === 'function' ? e.string() : '',
+                revision: e.revision,
+                deleted: e.operation === 'DEL' || e.operation === 'PURGE',
+                isUpdate: true,
                 done: false,
-              }
+              },
+              done: false,
             }
-            return { value: undefined, done: true }
           },
         }
       },
@@ -376,16 +378,26 @@ class NatsBus implements Bus {
 }
 
 class NatsSub implements Subscription {
-  constructor(private readonly sub: NatsSubscription, private readonly bus: NatsBus) {}
+  // A SINGLE iterator for the subscription's lifetime: calling
+  // `sub[Symbol.asyncIterator]()` per next() throws "iterator is already
+  // yielding" (the core subscription only permits one concurrent iterator).
+  private readonly iter: AsyncIterator<Msg>
+  constructor(private readonly sub: NatsSubscription, private readonly bus: NatsBus) {
+    this.iter = sub[Symbol.asyncIterator]()
+  }
   async next(ctx: AbortSignal): Promise<Envelope | null> {
-    const iter = this.sub[Symbol.asyncIterator]()
-    const result = await Promise.race([
-      iter.next(),
-      new Promise<IteratorResult<Msg>>(resolve => {
-        if (ctx.aborted) resolve({ value: undefined as unknown as Msg, done: true })
-        else ctx.addEventListener('abort', () => resolve({ value: undefined as unknown as Msg, done: true }), { once: true })
-      }),
-    ])
+    if (ctx.aborted) return null
+    // On abort, unsubscribe so the in-flight iter.next() resolves (done). This
+    // avoids orphaning a pending next() (which would make the NEXT call throw
+    // "iterator is already yielding").
+    const onAbort = () => void this.sub.unsubscribe()
+    ctx.addEventListener('abort', onAbort, { once: true })
+    let result: IteratorResult<Msg>
+    try {
+      result = await this.iter.next()
+    } finally {
+      ctx.removeEventListener('abort', onAbort)
+    }
     if (result.done || !result.value) return null
     const m = result.value
     try {
