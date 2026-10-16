@@ -3,6 +3,7 @@
 // resolves variables, fires hooks, interrupts, and drives the mailbox.
 
 import type { Bus, Envelope, Subscription } from '../bus/bus.js'
+import { codeFromWire } from '../protocol/code.js'
 import {
   CH_DISCOVER,
   GLOBAL_TENANT,
@@ -157,9 +158,9 @@ export class Agent {
   async callTool(ctx: AbortSignal, tenant: string, sessionName: string, extId: string, tool: string, callId: string, args: Record<string, unknown>): Promise<ToolResult> {
     const reply = await this.b.request(ctx, chToolCall(tenant, extId, tool), { call_id: callId, arguments: args }, { sessionName, tenant })
     if (!reply) throw new Error(`tool "${tool}": no reply`)
-    const tr = reply.payload as { content?: string; data?: unknown; metadata?: unknown; error?: { code: string; message: string }; object?: { id: string; content_type?: string } }
+    const tr = reply.payload as { content?: string; data?: unknown; metadata?: unknown; error?: { code: string | number; message: string }; object?: { id: string; content_type?: string } }
     const r: ToolResult = { content: tr.content ?? '', data: tr.data, metadata: tr.metadata }
-    if (tr.error) r.error = { code: tr.error.code, message: tr.error.message }
+    if (tr.error) r.error = { code: codeFromWire(tr.error.code as unknown as string | number), message: tr.error.message }
     if (tr.object) r.object = { id: tr.object.id, ...(tr.object.content_type ? { contentType: tr.object.content_type } : {}) }
     return r
   }

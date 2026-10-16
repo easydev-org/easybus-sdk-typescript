@@ -1,15 +1,8 @@
 // The extension-role type surface (separated so `extension.ts` can import the
 // ConfigStore without a cycle).
 
-/** Standard error codes carried on the wire. */
-export type ToolErrorCode =
-  | 'CODE_UNSPECIFIED'
-  | 'CODE_INVALID_ARGUMENT'
-  | 'CODE_NOT_FOUND'
-  | 'CODE_PERMISSION_DENIED'
-  | 'CODE_RETRYABLE'
-  | 'CODE_BUSINESS'
-  | 'CODE_INTERNAL'
+import type { ToolErrorCode } from '../protocol/code.js'
+export type { ToolErrorCode }
 
 /** ToolResultData is what a tool Execute returns. */
 export interface ToolResultData {

@@ -21,6 +21,7 @@ import {
 import type { Bus, Envelope, InboxPublishOpts, Subscription } from '../bus/bus.js'
 import { ConfigStore } from './config.js'
 import type { Config, LifecycleEvent, ToolErrorCode, ToolResultData, ToolSpec } from './types.js'
+import { codeToWire } from '../protocol/code.js'
 
 export * from './types.js'
 
@@ -216,7 +217,7 @@ export class Extension {
     try {
       const data = await spec.execute(callCtl.signal, call.arguments ?? {}, call.call_id ?? '', sessionName, tenant)
       if (data.content !== undefined && Buffer.byteLength(data.content, 'utf8') > MAX_TOOL_CONTENT_BYTES) {
-        res.error = { code: 'CODE_INVALID_ARGUMENT', message: `tool '${name}' returned ${Buffer.byteLength(data.content, 'utf8')} bytes of text, over the ${MAX_TOOL_CONTENT_BYTES}-byte limit; return large data as a file (data.files) instead` }
+        res.error = { code: codeToWire('CODE_INVALID_ARGUMENT'), message: `tool '${name}' returned ${Buffer.byteLength(data.content, 'utf8')} bytes of text, over the ${MAX_TOOL_CONTENT_BYTES}-byte limit; return large data as a file (data.files) instead` }
       } else if (data.content !== undefined && data.content !== '') {
         res.content = data.content
       }
@@ -224,7 +225,7 @@ export class Extension {
       if (res.error === undefined && data.object !== undefined) res.object = { id: data.object.id, content_type: data.object.contentType }
     } catch (e) {
       const code = e instanceof TypedError ? e.code : 'CODE_INTERNAL'
-      res.error = { code, message: e instanceof Error ? e.message : String(e) }
+      res.error = { code: codeToWire(code), message: e instanceof Error ? e.message : String(e) }
     }
     this.untrackInflight(tenant, sessionName, call.call_id ?? '')
     await this.b.publish(AbortSignal.timeout(5000), replyTo, res, { tenant })
@@ -262,9 +263,9 @@ export class Extension {
           const args = call.arguments ?? {}
           let res: { ok: boolean; data?: unknown; error?: { code: ToolErrorCode; message: string } }
           const msg = validateHookSchema(this.cfg.hookSchemas?.call?.[hook], args, 'arguments')
-          if (msg) res = { ok: false, error: { code: 'CODE_INVALID_ARGUMENT', message: msg } }
-          else if (!this.cfg.onCallHook) res = { ok: false, error: { code: 'CODE_NOT_FOUND', message: `no handler for hook ${hook}` } }
-          else res = await this.cfg.onCallHook(ctx, hook, sessionName, args, tenant).catch(e => ({ ok: false, error: { code: 'CODE_INTERNAL' as const, message: e instanceof Error ? e.message : String(e) } }))
+          if (msg) res = { ok: false, error: { code: codeToWire('CODE_INVALID_ARGUMENT') as unknown as ToolErrorCode, message: msg } }
+          else if (!this.cfg.onCallHook) res = { ok: false, error: { code: codeToWire('CODE_NOT_FOUND') as unknown as ToolErrorCode, message: `no handler for hook ${hook}` } }
+          else res = await this.cfg.onCallHook(ctx, hook, sessionName, args, tenant).catch(e => ({ ok: false, error: { code: codeToWire('CODE_INTERNAL') as unknown as ToolErrorCode, message: e instanceof Error ? e.message : String(e) } }))
           await this.b.publish(ctx, env.replyTo, res, { tenant })
         }
       })()
@@ -445,7 +446,7 @@ export class Extension {
         }
         if (rejectErr) this.configStore.rollbackSet(this.cfg.config ?? {}, tenant, set.name, set.scope === 'session' ? set.session_name : undefined)
         if (set.ack) {
-          await this.b.publish(ctx, env.replyTo, rejectErr ? { ok: false, error: { code: 'CODE_INTERNAL', message: rejectErr.message } } : { ok: true }, { tenant })
+          await this.b.publish(ctx, env.replyTo, rejectErr ? { ok: false, error: { code: codeToWire('CODE_INTERNAL'), message: rejectErr.message } } : { ok: true }, { tenant })
         }
       }
     })()

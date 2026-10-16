@@ -4,6 +4,7 @@
 
 export * from './protocol/protocol.js'
 export * from './protocol/golden.js'
+export * from './protocol/code.js'
 export * from './identity/index.js'
 export * from './bus/index.js'
 export * from './transport/nats/index.js'
