@@ -393,6 +393,8 @@ describe('conformance', () => {
       const agent = new Agent(a)
       const bad = await agent.callHook(AbortSignal.timeout(3000), T, 'conf-ext', 'audit', 'sess-h', { nope: true })
       expect(bad?.ok).toBe(false)
+      // The wire code is the proto enum NUMBER (CODE_INVALID_ARGUMENT = 1);
+      // the agent decodes it back to the name.
       expect(bad?.error?.code).toBe('CODE_INVALID_ARGUMENT')
       const good = await agent.callHook(AbortSignal.timeout(3000), T, 'conf-ext', 'audit', 'sess-h', { who: 'me' })
       expect(good?.ok).toBe(true)

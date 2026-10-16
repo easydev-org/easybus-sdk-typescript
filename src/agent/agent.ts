@@ -180,7 +180,14 @@ export class Agent {
   /** CallHook fires a synchronous call hook. */
   async callHook(ctx: AbortSignal, tenant: string, extId: string, hook: string, sessionName: string, args: Record<string, unknown>): Promise<{ ok: boolean; data?: unknown; error?: { code: string; message: string } } | null> {
     const reply = await this.b.request(ctx, chHookCall(tenant, extId, hook), { hook, session_name: sessionName, arguments: args }, { sessionName, tenant })
-    return reply ? (reply.payload as { ok: boolean; data?: unknown; error?: { code: string; message: string } }) : null
+    if (!reply) return null
+    const r = reply.payload as { ok: boolean; data?: unknown; error?: { code: string | number; message: string } }
+    // Decode the wire error code (a proto enum number) back to its name.
+    return {
+      ok: r.ok,
+      ...(r.data !== undefined ? { data: r.data } : {}),
+      ...(r.error ? { error: { code: codeFromWire(r.error.code), message: r.error.message } } : {}),
+    }
   }
 
   /** Interrupt aborts every in-flight tool call of one tenant's extension. */
