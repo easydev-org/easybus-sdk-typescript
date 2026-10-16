@@ -2,7 +2,9 @@
 // Discovers extensions (presence-first, broadcast fallback), calls tools,
 // resolves variables, fires hooks, interrupts, and drives the mailbox.
 
-import type { Bus, Envelope, Subscription } from '../bus/bus.js'
+import type { Bus, Subscription } from '../bus/bus.js'
+import type { Envelope } from '../wire.js'
+import { valueToJson } from '../transport/nats/nats.js'
 import { codeFromWire } from '../protocol/code.js'
 import {
   CH_DISCOVER,
@@ -91,7 +93,7 @@ export class Agent {
     const seen = new Set<string>()
     const out: ExtensionManifest[] = []
     for (const r of replies) {
-      const m = r.payload as ExtensionManifest
+      const m = valueToJson(r.payload) as ExtensionManifest
       if (!m || !m.id || seen.has(m.id)) continue
       seen.add(m.id)
       this.cacheManifest(m)
@@ -158,7 +160,7 @@ export class Agent {
   async callTool(ctx: AbortSignal, tenant: string, sessionName: string, extId: string, tool: string, callId: string, args: Record<string, unknown>): Promise<ToolResult> {
     const reply = await this.b.request(ctx, chToolCall(tenant, extId, tool), { call_id: callId, arguments: args }, { sessionName, tenant })
     if (!reply) throw new Error(`tool "${tool}": no reply`)
-    const tr = reply.payload as { content?: string; data?: unknown; metadata?: unknown; error?: { code: string | number; message: string }; object?: { id: string; content_type?: string } }
+    const tr = valueToJson(reply.payload) as { content?: string; data?: unknown; metadata?: unknown; error?: { code: string | number; message: string }; object?: { id: string; content_type?: string } }
     const r: ToolResult = { content: tr.content ?? '', data: tr.data, metadata: tr.metadata }
     if (tr.error) r.error = { code: codeFromWire(tr.error.code as unknown as string | number), message: tr.error.message }
     if (tr.object) r.object = { id: tr.object.id, ...(tr.object.content_type ? { contentType: tr.object.content_type } : {}) }
@@ -173,7 +175,7 @@ export class Agent {
     if (cachedGlobal !== '') return [cachedGlobal, true]
     const reply = await this.b.request(ctx, `easybus.${tenant}.var.${provider}.${name}`, {}, { sessionName, tenant })
     if (!reply) return ['', false]
-    const v = reply.payload as { value?: string }
+    const v = valueToJson(reply.payload) as { value?: string }
     return [v.value ?? '', true]
   }
 
@@ -181,7 +183,7 @@ export class Agent {
   async callHook(ctx: AbortSignal, tenant: string, extId: string, hook: string, sessionName: string, args: Record<string, unknown>): Promise<{ ok: boolean; data?: unknown; error?: { code: string; message: string } } | null> {
     const reply = await this.b.request(ctx, chHookCall(tenant, extId, hook), { hook, session_name: sessionName, arguments: args }, { sessionName, tenant })
     if (!reply) return null
-    const r = reply.payload as { ok: boolean; data?: unknown; error?: { code: string | number; message: string } }
+    const r = valueToJson(reply.payload) as { ok: boolean; data?: unknown; error?: { code: string | number; message: string } }
     // Decode the wire error code (a proto enum number) back to its name.
     return {
       ok: r.ok,
@@ -242,7 +244,7 @@ export class Agent {
         if (!m) return
         const env = m.envelope
         const tenant = env.tenant || subjectTenant(env.ch)
-        const body = env.payload as { id?: string; type?: string; source?: string; payload?: unknown }
+        const body = valueToJson(env.payload) as { id?: string; type?: string; source?: string; payload?: unknown }
         const msg: MailboxMessage = {
           id: body.id ?? env.id ?? '',
           type: body.type ?? '',
@@ -285,4 +287,3 @@ export class Agent {
 }
 
 export { chInterruptAll }
-export type { Envelope }

@@ -1,6 +1,8 @@
 // The transport-agnostic message bus — the TS twin of the Go `easybus-sdk/bus`
-// package. Exactly one production transport exists (NATS); the in-process
-// transport (`./inproc`) is the conformance/test double with the same contract.
+// package. The wire envelope is the GENERATED `easybus.v1.Envelope` (see
+// `../wire.js`); NOTHING here is hand-written.
+
+import type { Envelope } from '../wire.js'
 
 /** RequestOpts tunes a request or broadcast. */
 export interface RequestOpts {
@@ -36,7 +38,7 @@ export interface PublishOpts {
 
 /** Subscription is a live channel subscription. */
 export interface Subscription {
-  /** Blocks until the next envelope, or null on close/ctx-done. */
+  /** Resolves to the next envelope, or null on close/ctx-done. */
   next(ctx: AbortSignal): Promise<Envelope | null>
   close(): Promise<void>
 }
@@ -67,22 +69,6 @@ export interface InboxMsg {
 export interface InboxSubscription {
   next(ctx: AbortSignal): Promise<InboxMsg | null>
   close(): Promise<void>
-}
-
-/**
- * Envelope is the decoded bus envelope. It mirrors the proto `Envelope` but is
- * the SHAPE the bus interface exchanges (the transport maps proto <-> this).
- */
-export interface Envelope {
-  v?: number
-  ch: string
-  tenant: string
-  kind: 'req' | 'pub' | 'queue'
-  payload: unknown
-  id?: string
-  replyTo?: string
-  sessionName?: string
-  pending?: number
 }
 
 /** Bus is the transport-agnostic message bus. */

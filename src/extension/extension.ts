@@ -18,7 +18,9 @@ import {
   VARS_BUCKET,
   CONFIG_KV_BUCKET,
 } from '../protocol/protocol.js'
-import type { Bus, Envelope, InboxPublishOpts, Subscription } from '../bus/bus.js'
+import type { Bus, InboxPublishOpts, Subscription } from '../bus/bus.js'
+import type { Envelope } from '../wire.js'
+import { valueToJson } from '../transport/nats/nats.js'
 import { ConfigStore } from './config.js'
 import type { Config, LifecycleEvent, ToolErrorCode, ToolResultData, ToolSpec } from './types.js'
 import { codeToWire } from '../protocol/code.js'
@@ -206,7 +208,7 @@ export class Extension {
 
   private async handleToolCall(ctx: AbortSignal, name: string, spec: ToolSpec, env: Envelope): Promise<void> {
     const replyTo = env.replyTo ?? ''
-    const call = env.payload as { call_id?: string; arguments?: Record<string, unknown> }
+    const call = valueToJson(env.payload) as { call_id?: string; arguments?: Record<string, unknown> }
     if (!call || replyTo === '') return
     const sessionName = env.sessionName ?? ''
     const tenant = env.tenant || subjectTenant(env.ch)
@@ -257,7 +259,7 @@ export class Extension {
           const env = await sub.next(ctx)
           if (!env) return
           if (!env.replyTo) continue
-          const call = env.payload as { session_name?: string; arguments?: Record<string, unknown> }
+          const call = valueToJson(env.payload) as { session_name?: string; arguments?: Record<string, unknown> }
           const sessionName = call.session_name || env.sessionName || ''
           const tenant = env.tenant || subjectTenant(env.ch)
           const args = call.arguments ?? {}
@@ -280,7 +282,7 @@ export class Extension {
         for (;;) {
           const env = await sub.next(ctx)
           if (!env) return
-          const ev = env.payload as { session_name?: string; payload?: unknown }
+          const ev = valueToJson(env.payload) as { session_name?: string; payload?: unknown }
           const sessionName = ev.session_name || env.sessionName || ''
           const tenant = env.tenant || subjectTenant(env.ch)
           if (validateHookSchema(this.cfg.hookSchemas?.event?.[hook], ev.payload, 'payload')) continue
@@ -299,7 +301,7 @@ export class Extension {
       for (;;) {
         const env = await sub.next(ctx)
         if (!env) return
-        const ev = env.payload as LifecycleEvent
+        const ev = valueToJson(env.payload) as LifecycleEvent
         const tenant = env.tenant || subjectTenant(env.ch)
         if (!wanted.has(ev.kind)) continue
         if (ev.kind === 'deleted') await this.deleteSessionVariables(ctx, tenant, ev.sessionName).catch(() => {})
@@ -315,7 +317,7 @@ export class Extension {
       for (;;) {
         const env = await sub.next(ctx)
         if (!env) return
-        const sig = env.payload as { session_name?: string; reason?: string }
+        const sig = valueToJson(env.payload) as { session_name?: string; reason?: string }
         const sessionName = sig.session_name ?? env.sessionName ?? ''
         const tenant = env.tenant || subjectTenant(env.ch)
         if (sessionName !== '') this.cancelInflight(tenant, sessionName)
@@ -437,7 +439,7 @@ export class Extension {
         const env = await sub.next(ctx)
         if (!env) return
         if (!env.replyTo) continue
-        const set = env.payload as { name: string; scope?: string; value: unknown; session_name?: string; ack?: boolean }
+        const set = valueToJson(env.payload) as { name: string; scope?: string; value: unknown; session_name?: string; ack?: boolean }
         const tenant = env.tenant || subjectTenant(env.ch)
         this.configStore.applySet(this.cfg.config ?? {}, tenant, set.name, set.value, set.scope === 'session' ? set.session_name : undefined)
         let rejectErr: Error | null = null

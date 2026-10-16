@@ -9,15 +9,18 @@ import {
   type Msg,
   type Subscription as NatsSubscription,
   headers as natsHeaders,
+  createInbox,
 } from '@nats-io/nats-core'
 import { connect as natsConnect } from '@nats-io/transport-node'
 import { jetstream, jetstreamManager, type JetStreamClient, type JetStreamManager, type Consumer } from '@nats-io/jetstream'
 import { Kvm, type KV } from '@nats-io/kv'
 import { Objm, type ObjectStore as NatsObjectStore } from '@nats-io/obj'
 
+import { create, toJson, fromJson } from '@bufbuild/protobuf'
+import { ValueSchema, type Value } from '@bufbuild/protobuf/wkt'
+
 import type {
   Bus,
-  Envelope,
   InboxConsumeOpts,
   InboxMsg,
   InboxPublishOpts,
@@ -28,6 +31,14 @@ import type {
   SubscribeOpts,
   Subscription,
 } from '../../bus/bus.js'
+import {
+  EnvelopeSchema,
+  Envelope_Kind,
+  encodeEnvelope,
+  decodeEnvelope,
+  envelopeKindString,
+  type Envelope,
+} from '../../wire.js'
 import { subjectTenant, tenantPrefix, sessionToken } from '../../protocol/protocol.js'
 import { type Identity, authHeader, verify } from '../../identity/identity.js'
 
@@ -51,17 +62,6 @@ export interface Options {
   replicas?: number
   /** Identity enables opt-in message auth (HMAC headers). */
   identity?: Identity
-}
-
-interface RawEnvelope {
-  v: number
-  tenant: string
-  ch: string
-  kind: string
-  id?: string
-  session_name?: string
-  reply_to?: string
-  payload?: unknown
 }
 
 /** Connect establishes a NATS connection with the default stream topology. */
@@ -124,27 +124,44 @@ function tenantOf(ch: string, explicit?: string): string {
   return explicit ?? subjectTenant(ch)
 }
 
-function buildEnvelope(kind: string, ch: string, payload: unknown, tenant: string, id?: string, sessionName?: string, replyTo?: string): Uint8Array {
-  const m: RawEnvelope = { v: 2, ch, kind, tenant, payload }
-  if (id) m.id = id
-  if (sessionName) m.session_name = sessionName
-  if (replyTo) m.reply_to = replyTo
-  return new TextEncoder().encode(JSON.stringify(m))
+/** jsonToValue wraps a JSON body into a google.protobuf.Value. */
+function jsonToValue(payload: unknown): Value | undefined {
+  if (payload === undefined) return undefined
+  return fromJson(ValueSchema, payload as never)
 }
 
+/** valueToJson unwraps a google.protobuf.Value back into a plain JSON body. */
+export function valueToJson(v: Value | undefined): unknown {
+  return v === undefined ? undefined : toJson(ValueSchema, v)
+}
+
+/** buildEnvelope assembles the GENERATED Envelope message and encodes it to the
+ *  Go-compatible JSON wire form (snake_case + integer enums). */
+function buildEnvelope(kind: string, ch: string, payload: unknown, tenant: string, id?: string, sessionName?: string, replyTo?: string): Uint8Array {
+  const env = create(EnvelopeSchema, {
+    v: 2,
+    ch,
+    tenant,
+    kind: KIND_ENUM_MAP[kind] ?? Envelope_Kind.PUB,
+    ...(id ? { id } : {}),
+    ...(sessionName ? { sessionName } : {}),
+    ...(replyTo ? { replyTo } : {}),
+    ...(payload !== undefined ? { payload: jsonToValue(payload) } : {}),
+  })
+  return encodeEnvelope(env)
+}
+
+const KIND_ENUM_MAP: Record<string, Envelope_Kind> = {
+  req: Envelope_Kind.REQ,
+  pub: Envelope_Kind.PUB,
+  queue: Envelope_Kind.QUEUE,
+}
+
+/** decode parses a Go-compatible JSON envelope into the generated message. */
 function decode(data: Uint8Array, reply?: string): Envelope {
-  const raw = JSON.parse(new TextDecoder().decode(data)) as RawEnvelope
-  if (raw.v !== 2) throw new Error(`unsupported envelope version ${raw.v}`)
-  const env: Envelope = {
-    v: raw.v,
-    ch: raw.ch,
-    tenant: raw.tenant,
-    kind: (raw.kind as Envelope['kind']) ?? 'pub',
-    payload: raw.payload,
-  }
-  if (raw.id) env.id = raw.id
-  if (raw.session_name) env.sessionName = raw.session_name
-  if (reply) env.replyTo = reply
+  const env = decodeEnvelope(data)
+  if (env.v !== 2) throw new Error(`unsupported envelope version ${env.v}`)
+  if (reply && !env.replyTo) env.replyTo = reply
   return env
 }
 
@@ -160,14 +177,19 @@ class NatsBus implements Bus {
     private readonly idn?: Identity,
   ) {}
 
-  private sign(h: ReturnType<typeof natsHeaders>, ch: string, kind: string, id: string, payload: unknown): void {
-    if (!this.idn) return
+  /** Build the auth headers, or undefined when identity is disabled (so the
+   *  message carries NO header block — an EMPTY header block is not the same as
+   *  none, and the Go side sends none). */
+  private authHeaders(ch: string, kind: string, id: string, payload: unknown): ReturnType<typeof natsHeaders> | undefined {
+    if (!this.idn) return undefined
+    const h = natsHeaders()
     const hdr = authHeader(this.idn, { ch, kind, id, payload })
     h.set('easybus-id', hdr.id)
     h.set('easybus-sig', hdr.sig)
+    return h
   }
 
-  private verifyMsg(m: Msg, raw: RawEnvelope): boolean {
+  private verifyMsg(m: Msg, raw: { tenant: string; ch: string; kind: string; id?: string; payload?: unknown }): boolean {
     if (!this.idn) return true
     const sig = m.headers?.get('easybus-sig') ?? ''
     if (!sig) return false
@@ -179,9 +201,11 @@ class NatsBus implements Bus {
     const timeout = opts.timeoutMs && opts.timeoutMs > 0 ? opts.timeoutMs : undefined
     try {
       const m = await this.nc.request(ch, data, timeout ? { timeout } : undefined)
-      const raw = JSON.parse(new TextDecoder().decode(m.data)) as RawEnvelope
-      if (!this.verifyMsg(m, raw)) throw new Error(`identity: signature verification failed on ${m.subject}`)
-      return decode(m.data, m.reply)
+      const env = decode(m.data, m.reply)
+      if (!this.verifyMsg(m, { tenant: env.tenant, ch: env.ch, kind: envelopeKindString(env), id: env.id, payload: valueToJson(env.payload) })) {
+        throw new Error(`identity: signature verification failed on ${m.subject}`)
+      }
+      return env
     } catch (e) {
       if (ctx.aborted) return null
       throw e
@@ -190,27 +214,74 @@ class NatsBus implements Bus {
 
   async requestMany(ctx: AbortSignal, ch: string, payload: unknown, opts: RequestOpts = {}): Promise<Envelope[]> {
     const data = buildEnvelope('req', ch, payload, tenantOf(ch, opts.tenant))
-    const out: Envelope[] = []
     const maxWait = opts.maxWaitMs && opts.maxWaitMs > 0 ? opts.maxWaitMs : 500
-    const iter = await this.nc.requestMany(ch, data, { maxWait, strategy: 'stall' })
-    const timer = setTimeout(() => {}, 0)
-    clearTimeout(timer)
-    const abortable = (async () => {
-      for await (const m of iter) {
-        const raw = JSON.parse(new TextDecoder().decode(m.data)) as RawEnvelope
-        if (!this.verifyMsg(m, raw)) continue
-        out.push(decode(m.data, m.reply))
+    // Mirror the Go RequestMany exactly: subscribe a fresh inbox, publish the
+    // request with reply=inbox, collect replies for maxWaitMs, then stop. This
+    // is plain core-NATS request/reply (NOT JetStream), so a client strategy
+    // like 'stall' (JetStream-oriented) must NOT be used.
+    const inbox = createInbox()
+    const sub = this.nc.subscribe(inbox)
+    // Flush so the server registers the inbox interest BEFORE we publish: a
+    // publish issued right after subscribe can otherwise land before interest
+    // is established and its reply is dropped (the Go SDK flushes here too).
+    await this.nc.flush()
+    const iter = sub[Symbol.asyncIterator]()
+    const out: Envelope[] = []
+    const env = create(EnvelopeSchema, {
+      v: 2,
+      ch,
+      tenant: tenantOf(ch, opts.tenant),
+      kind: Envelope_Kind.REQ,
+      replyTo: inbox,
+      ...(payload !== undefined ? { payload: jsonToValue(payload) } : {}),
+    })
+    const bytes = encodeEnvelope(env)
+    const h = this.authHeaders(ch, 'req', '', payload)
+    // Arm the iterator BEFORE publishing: a reply that arrives before the first
+    // next() is buffered by the subscription, but awaiting next() only AFTER the
+    // publish races the deadline (and can miss a fast reply). Arm first, then
+    // publish, then collect until maxWaitMs elapses.
+    const pending = iter.next()
+    const pubOpts: { reply: string; headers?: ReturnType<typeof natsHeaders> } = { reply: inbox }
+    if (h) pubOpts.headers = h
+    this.nc.publish(ch, bytes, pubOpts)
+    const deadline = Date.now() + maxWait
+    let cur = pending
+    try {
+      for (;;) {
+        const remaining = deadline - Date.now()
+        if (remaining <= 0) break
+        const result = await Promise.race([
+          cur,
+          new Promise<{ done: true; value: undefined }>(resolve => setTimeout(() => resolve({ done: true, value: undefined }), remaining)),
+        ])
+        if (result.done) break
+        const m = result.value as Msg
+        // Re-arm immediately so the next reply has a waiter.
+        cur = iter.next()
+        let e: Envelope
+        try {
+          e = decode(m.data, m.reply)
+        } catch {
+          continue
+        }
+        if (!this.verifyMsg(m, { tenant: e.tenant, ch: e.ch, kind: envelopeKindString(e), id: e.id, payload: valueToJson(e.payload) })) continue
+        out.push(e)
       }
-    })()
-    await abortable
+    } finally {
+      await sub.unsubscribe()
+    }
+    void ctx
     return out
   }
 
   async publish(ctx: AbortSignal, ch: string, payload: unknown, opts: PublishOpts = {}): Promise<void> {
     const data = buildEnvelope('pub', ch, payload, tenantOf(ch, opts.tenant), undefined, undefined, opts.replyTo)
-    const h = natsHeaders()
-    this.sign(h, ch, 'pub', '', payload)
-    this.nc.publish(ch, data, opts.replyTo ? { reply: opts.replyTo, headers: h } : { headers: h })
+    const h = this.authHeaders(ch, 'pub', '', payload)
+    const pubOpts: { reply?: string; headers?: ReturnType<typeof natsHeaders> } = {}
+    if (opts.replyTo) pubOpts.reply = opts.replyTo
+    if (h) pubOpts.headers = h
+    this.nc.publish(ch, data, pubOpts)
   }
 
   async subscribe(ctx: AbortSignal, ch: string, opts: SubscribeOpts = {}): Promise<Subscription> {
@@ -387,23 +458,24 @@ class NatsSub implements Subscription {
   }
   async next(ctx: AbortSignal): Promise<Envelope | null> {
     if (ctx.aborted) return null
-    // On abort, unsubscribe so the in-flight iter.next() resolves (done). This
-    // avoids orphaning a pending next() (which would make the NEXT call throw
-    // "iterator is already yielding").
-    const onAbort = () => void this.sub.unsubscribe()
-    ctx.addEventListener('abort', onAbort, { once: true })
-    let result: IteratorResult<Msg>
-    try {
-      result = await this.iter.next()
-    } finally {
-      ctx.removeEventListener('abort', onAbort)
-    }
-    if (result.done || !result.value) return null
+    // Abort only cancels THIS wait — it must NOT close the subscription, which
+    // is long-lived (a discover/tool loop keeps reading). We simply stop waiting
+    // and return null; the next next() call re-arms the same iterator.
+    const holder: { r: IteratorResult<Msg> | null } = { r: null }
+    await Promise.race([
+      this.iter.next().then(r => { holder.r = r }),
+      new Promise<void>(resolve => {
+        if (ctx.aborted) resolve()
+        else ctx.addEventListener('abort', () => resolve(), { once: true })
+      }),
+    ])
+    const result = holder.r
+    if (result === null || result.done || !result.value) return null
     const m = result.value
     try {
-      const raw = JSON.parse(new TextDecoder().decode(m.data)) as RawEnvelope
-      if (!this.bus['verifyMsg'](m, raw)) return null
-      return decode(m.data, m.reply)
+      const env = decode(m.data, m.reply)
+      if (!this.bus['verifyMsg'](m, { tenant: env.tenant, ch: env.ch, kind: envelopeKindString(env), id: env.id, payload: valueToJson(env.payload) })) return null
+      return env
     } catch {
       return null
     }

@@ -7,6 +7,7 @@ import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 
 import { connect, type Bus } from '../src/index.js'
+import { valueToJson } from '../src/transport/nats/nats.js'
 import { Agent } from '../src/agent/index.js'
 import { Extension, TypedError, type Config } from '../src/extension/index.js'
 import { CH_DISCOVER, GLOBAL_TENANT, chMailbox, newID, VARS_BUCKET, sessionVarKey } from '../src/protocol/protocol.js'
@@ -271,7 +272,7 @@ describe('conformance', () => {
     try {
       // The config channel is `easybus.*.config.<id>` with an ack reply.
       const reply = await a.request(AbortSignal.timeout(3000), `easybus.${T}.config.conf-ext`, { name: 'poll-interval', value: 60, ack: true }, { tenant: T })
-      expect((reply?.payload as { ok?: boolean })?.ok).toBe(true)
+      expect((valueToJson(reply?.payload) as { ok?: boolean })?.ok).toBe(true)
       for (let i = 0; i < 30 && applied.length === 0; i++) await delay(20)
       expect(applied).toEqual([{ name: 'poll-interval', value: 60 }])
       expect(ext.getConfig(T, 'poll-interval', '')).toBe(60)
@@ -288,7 +289,7 @@ describe('conformance', () => {
     await ext.serve(AbortSignal.timeout(10_000))
     try {
       const reply = await a.request(AbortSignal.timeout(3000), `easybus.${T}.config.conf-ext`, { name: 'poll-interval', value: 99, ack: true }, { tenant: T })
-      const body = reply?.payload as { ok?: boolean; error?: { message?: string } }
+      const body = valueToJson(reply?.payload) as { ok?: boolean; error?: { message?: string } }
       expect(body?.ok).toBe(false)
       expect(body?.error?.message).toBe('rejected')
     } finally {
@@ -313,7 +314,7 @@ describe('conformance', () => {
         for (;;) {
           const env = await sub.next(AbortSignal.timeout(5000))
           if (!env) return
-          events.push(env.payload)
+          events.push(valueToJson(env.payload))
         }
       })()
       await ext.publishSessionEvent(AbortSignal.timeout(3000), T, 'sess-se', 'todos-updated', { count: 3 })
