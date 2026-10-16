@@ -118,6 +118,38 @@ export function sessionVarKey(tenant: string, extId: string, sessionName: string
   return tenantKVKey(tenant, `${extId}.${sessionToken(sessionName)}.${name}`)
 }
 
+// ---- file RPCs (agent-served) ---------------------------------------------
+//
+// A DB-less, store-less extension (no S3 credentials, no agent DB) cannot mint
+// a canonical `file:<code>` on its own, so it asks the AGENT to persist the
+// bytes + metadata via the SAME path as an in-process ingest. The tenant rides
+// the subject (`easybus.<tenant>.file.ingest`) and the envelope, so no separate
+// credential is introduced. BYTES NEVER RIDE THE MESSAGE: the caller first
+// stores the bytes in the transient object store and sends only the reference.
+
+/** FILE_INGEST_WILDCARD is the cross-tenant consume wildcard for file.ingest. */
+export const FILE_INGEST_WILDCARD = 'easybus.*.file.ingest'
+/** FILE_GET_WILDCARD is the cross-tenant consume wildcard for file.get. */
+export const FILE_GET_WILDCARD = 'easybus.*.file.get'
+
+/** chFileIngest routes a file-ingest request for one tenant. */
+export function chFileIngest(tenant: string): string {
+  return `${tenantPrefix(tenant)}file.ingest`
+}
+
+/** chFileGet routes a file-get request for one tenant. */
+export function chFileGet(tenant: string): string {
+  return `${tenantPrefix(tenant)}file.get`
+}
+
+// ---- more arg readers (the extension-kit surface) --------------------------
+
+export function argStrArray(args: Record<string, unknown>, key: string): string[] {
+  const v = args[key]
+  if (!Array.isArray(v)) return []
+  return v.filter((x): x is string => typeof x === 'string')
+}
+
 // ---- arg readers -----------------------------------------------------------
 
 export function argString(args: Record<string, unknown>, key: string): string {
