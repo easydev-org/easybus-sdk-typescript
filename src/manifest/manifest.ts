@@ -4,6 +4,7 @@
 
 import { parse as parseYaml } from 'yaml'
 import type { Config, ConfigSpec, HookSchemas, OnCallHook, OnConfigChange, OnEventHook, OnLifecycle, ToolSpec, VariableSpec } from '../extension/types.js'
+import { CONFIG_KIND_SECRET } from '../extension/types.js'
 
 export interface ManifestTool {
   name: string
@@ -54,6 +55,18 @@ export interface Manifest {
 export function parseManifest(data: string): Manifest {
   const m = parseYaml(data) as Manifest
   if (!m || !m.id) throw new Error('manifest: id is required')
+  for (const c of m.config ?? []) {
+    if (c.kind !== CONFIG_KIND_SECRET) continue
+    // A secret knob is a credential: its value is never returned to a client,
+    // and a `default` would ride the (broadcast) manifest — so a secret MUST be
+    // a string and MUST NOT declare a default.
+    if (c.type && c.type !== 'string') {
+      throw new Error(`manifest: config "${c.name}": kind=secret requires type=string (got "${c.type}")`)
+    }
+    if (c.default !== undefined && c.default !== null && c.default !== '') {
+      throw new Error(`manifest: config "${c.name}": kind=secret must not declare a default`)
+    }
+  }
   return m
 }
 

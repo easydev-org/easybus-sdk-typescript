@@ -4,6 +4,11 @@
 import type { ToolErrorCode } from '../protocol/code.js'
 export type { ToolErrorCode }
 
+/** Config knob kinds (kind is an open string; these are the special values). */
+export const CONFIG_KIND_VALUE = 'value'
+export const CONFIG_KIND_MODEL = 'model'
+export const CONFIG_KIND_SECRET = 'secret'
+
 /** ToolResultData is what a tool Execute returns. */
 export interface ToolResultData {
   content?: string
