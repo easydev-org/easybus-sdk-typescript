@@ -22,6 +22,8 @@ export interface ToolSpec {
   descriptions?: Record<string, string>
   inputSchema?: Record<string, unknown>
   requiredConfig?: string[]
+  /** Grouping of this tool (pvc, build, storage, ...). Organisational only. */
+  namespace?: string
   execute: (ctx: AbortSignal, args: Record<string, unknown>, callId: string, sessionName: string, tenant: string) => Promise<ToolResultData>
 }
 
@@ -37,12 +39,51 @@ export interface VariableSpec {
 export interface ConfigSpec {
   description?: string
   descriptions?: Record<string, string>
-  type: string // string | number | boolean | enum | json
+  // string | number | boolean | enum | json | list | object
+  type: string
   kind?: string // "value" (default) | "model"
   capability?: string
   enumValues?: string[]
   default?: unknown
   scope?: string
+  /** Shape of a structured knob (type list/object). Empty = json blob fallback. */
+  fields?: FieldSpec[]
+  /** Element type when type === 'list'. */
+  itemType?: string
+  minItems?: number
+  maxItems?: number
+  /**
+   * Scopes this knob's stored value to one namespace of the extension.
+   * Empty = extension-level (shared by all its namespaces).
+   */
+  namespace?: string
+}
+
+/**
+ * FieldSpec is one key of a structured config value (or of one list item's keys).
+ *
+ * It is what lets a client render a form instead of a JSON textarea: `enum`
+ * becomes a picker, `kind: 'secret'` a masked input, `format: 'uri'` a URL field.
+ */
+export interface FieldSpec {
+  name: string
+  type?: string
+  kind?: string
+  format?: string
+  enumValues?: string[]
+  default?: unknown
+  required?: boolean
+  description?: string
+  descriptions?: Record<string, string>
+  /** Nested shape for an object field (one level, like the manifest). */
+  fields?: FieldSpec[]
+}
+
+/** NamespaceSpec is one declared grouping of an extension's tools and config. */
+export interface NamespaceSpec {
+  name: string
+  description?: string
+  descriptions?: Record<string, string>
 }
 
 export interface HookSchemas {
@@ -73,6 +114,8 @@ export interface Config {
   tools?: Record<string, ToolSpec>
   variables?: Record<string, VariableSpec>
   config?: Record<string, ConfigSpec>
+  /** Declared groupings (pvc, build, storage, ...), in the author's ORDER. */
+  namespaces?: NamespaceSpec[]
   callHooks?: string[]
   eventHooks?: string[]
   lifecycle?: string[]

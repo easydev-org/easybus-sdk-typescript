@@ -22,7 +22,7 @@ import type { Bus, InboxPublishOpts, Subscription } from '../bus/bus.js'
 import type { Envelope } from '../wire.js'
 import { valueToJson } from '../transport/nats/nats.js'
 import { ConfigStore } from './config.js'
-import type { Config, LifecycleEvent, ToolErrorCode, ToolResultData, ToolSpec } from './types.js'
+import type { Config, FieldSpec, LifecycleEvent, ToolErrorCode, ToolResultData, ToolSpec } from './types.js'
 import { codeToWire } from '../protocol/code.js'
 
 export * from './types.js'
@@ -113,7 +113,16 @@ export class Extension {
     const caps: string[] = []
     const tools: Array<Record<string, unknown>> = []
     for (const [name, spec] of Object.entries(this.cfg.tools ?? {})) {
-      tools.push({ name, description: spec.description ?? '', descriptions: spec.descriptions ?? {}, input_schema: spec.inputSchema ?? {}, required_config: spec.requiredConfig ?? [] })
+      tools.push({
+        name,
+        description: spec.description ?? '',
+        descriptions: spec.descriptions ?? {},
+        input_schema: spec.inputSchema ?? {},
+        required_config: spec.requiredConfig ?? [],
+        // Without this the manifest carries per-tool namespace tags that
+        // reference groups the client never receives.
+        ...(spec.namespace ? { namespace: spec.namespace } : {}),
+      })
     }
     if (tools.length > 0) caps.push('tools')
     const promptVariables: Array<Record<string, unknown>> = []
@@ -133,6 +142,17 @@ export class Extension {
         enum_values: spec.enumValues ?? [],
         ...(spec.default !== undefined ? { default: spec.default } : {}),
         scope: spec.scope || 'global',
+        // The SHAPE of a structured knob: without it a client can only render one
+        // JSON textarea, and the stored key loses its namespace.
+        // Map to the WIRE names. Spreading the spec directly would publish
+        // camelCase (`enumValues`, `itemType`) while every reader — Go, Python,
+        // Rust and the generated TS schema — looks for snake_case, so the shape
+        // would silently vanish on the other side.
+        ...(spec.fields?.length ? { fields: spec.fields.map(fieldToWire) } : {}),
+        ...(spec.itemType ? { item_type: spec.itemType } : {}),
+        ...(spec.minItems ? { min_items: spec.minItems } : {}),
+        ...(spec.maxItems ? { max_items: spec.maxItems } : {}),
+        ...(spec.namespace ? { namespace: spec.namespace } : {}),
       })
     }
     const m: Record<string, unknown> = {
@@ -144,6 +164,9 @@ export class Extension {
       tools,
       prompt_variables: promptVariables,
       lifecycle: this.cfg.lifecycle ?? [],
+    }
+    if ((this.cfg.namespaces?.length ?? 0) > 0) {
+      m.namespaces = this.cfg.namespaces
     }
     if ((this.cfg.callHooks?.length ?? 0) > 0 || (this.cfg.eventHooks?.length ?? 0) > 0) {
       m.hooks = { call: this.cfg.callHooks ?? [], event: this.cfg.eventHooks ?? [], call_schemas: this.cfg.hookSchemas?.call ?? {}, event_schemas: this.cfg.hookSchemas?.event ?? {} }
@@ -492,5 +515,27 @@ export class Extension {
     }
     if (parts.length === 1) this.configStore.setGlobal(tenant, parts[0]!, value, ev.deleted)
     else if (parts.length >= 2) this.configStore.setSession(tenant, parts[0]!, parts.slice(1).join('.'), value, ev.deleted)
+  }
+}
+
+/**
+ * fieldToWire maps a FieldSpec onto its wire form (snake_case), recursing one
+ * level for an object field.
+ *
+ * The runtime specs are camelCase for TS ergonomics; the wire is snake_case
+ * because the .proto is the single source of truth shared with Go/Python/Rust.
+ */
+function fieldToWire(f: FieldSpec): Record<string, unknown> {
+  return {
+    name: f.name,
+    type: f.type ?? 'string',
+    kind: f.kind ?? '',
+    format: f.format ?? '',
+    enum_values: f.enumValues ?? [],
+    ...(f.default !== undefined ? { default: f.default } : {}),
+    required: f.required ?? false,
+    ...(f.description ? { description: f.description } : {}),
+    descriptions: f.descriptions ?? {},
+    ...(f.fields?.length ? { fields: f.fields.map(fieldToWire) } : {}),
   }
 }

@@ -15,7 +15,7 @@ config:
     expect(m.config?.[0]?.kind).toBe(CONFIG_KIND_SECRET)
   })
 
-  it('rejects a non-string secret', () => {
+  it('rejects a secret that is neither string, list nor object', () => {
     expect(() =>
       parseManifest(`
 id: x
@@ -25,7 +25,23 @@ config:
     type: number
     kind: secret
 `),
-    ).toThrow(/type=string/)
+    ).toThrow(/requires type/)
+  })
+
+  it('accepts a structured secret (a list whose records hold their own secrets)', () => {
+    // This is how a sandbox list declares a token PER sandbox. Rejecting it made
+    // the typed form impossible for exactly the knob that needs it most.
+    const m = parseManifest(`
+id: x
+version: "1"
+config:
+  - name: sandboxes
+    type: list
+    kind: secret
+    item_type: object
+`)
+    expect(m.config?.[0]?.kind).toBe(CONFIG_KIND_SECRET)
+    expect(m.config?.[0]?.type).toBe('list')
   })
 
   it('rejects a secret with a default', () => {
