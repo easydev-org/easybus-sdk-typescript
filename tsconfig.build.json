@@ -1,0 +1,19 @@
+{
+  // Emit configuration for publishing.
+  //
+  // tsconfig.json deliberately has `noEmit: true` — it is the TYPECHECK config
+  // used by CI and the editor. A published package cannot point at .ts sources
+  // (a consumer's `npm install` never compiles them), so the build needs a
+  // separate config that emits JavaScript + .d.ts into dist/.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["tests/**/*", "src/**/*.test.ts"]
+}
