@@ -1,7 +1,10 @@
 node_modules/
 dist/
 *.log
-# The lockfile has never been committed here: this is a LIBRARY, and pinning a
-# lock for consumers is pointless (npm ignores a dependency's lock). Keeping it
-# out also avoids a churn commit every time a dev environment installs.
-package-lock.json
+# The lockfile IS committed now.
+#
+# It was ignored on the reasoning that a library's lock is ignored by consumers —
+# true, but that is not the only job it does. Without one, `npm install` crashes
+# on some npm versions ("Cannot read properties of null (reading 'edgesOut')") and
+# every CI run resolves a slightly different dependency tree, so a failure cannot
+# be reproduced. It also gives Dependabot/audit a pinned surface to report on.

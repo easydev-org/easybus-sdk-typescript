@@ -22,12 +22,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-          # NO `cache: npm`: this repository deliberately does not commit a
-          # lockfile (it is a library — consumers ignore a dependency's lock, and
-          # committing one only adds churn). `cache: npm` requires that file and
-          # fails the step when it is absent, which failed all three matrix legs.
+          cache: npm
       # No registry/token needed: the SDK has no private dependencies.
-      - run: npm install --no-audit --no-fund
+      # `npm ci` against the committed lockfile: reproducible, and it fails loudly
+      # when package.json and the lock have drifted. A plain install with no
+      # lockfile also crashes on some npm versions
+      # ("Cannot read properties of null (reading 'edgesOut')").
+      - run: npm ci --no-audit --no-fund
       - run: npx tsc --noEmit
       - run: npm test
       # There is no `npm run build` script — this package's build is
