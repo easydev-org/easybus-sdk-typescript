@@ -327,6 +327,74 @@ describe('conformance2', () => {
     } finally { await a.close() }
   })
 
+  // A knob's value is ultimately a STRING.
+  //
+  // The agent writes it verbatim, and a URL or a token is not JSON — so a decoder
+  // that requires JSON drops the entry, silently, one key at a time. The extension
+  // then reports every knob unset while the agent and the console both insist the
+  // value is saved. This is the RESTART path: the bucket snapshot is the only way a
+  // fresh process learns its configuration.
+  it.skipIf(!url)('config_kv_bare_value_is_stored', async () => {
+    const a = await connect(url)
+    const e = await connect(url)
+    try {
+      await a.kvPut(CTX(3000), CONFIG_KV_BUCKET, `t.${T}.conf-ext.endpoint`, 'http://easyops.example:80', 0)
+      const ext = new Extension(e, { id: 'conf-ext', version: '1', config: { endpoint: { type: 'string', default: '' } } })
+      await ext.serve(CTX(10_000))
+      try {
+        for (let i = 0; i < 50 && ext.getConfig(T, 'endpoint', '') !== 'http://easyops.example:80'; i++) await delay(100)
+        expect(ext.getConfig(T, 'endpoint', '')).toBe('http://easyops.example:80')
+      } finally { await ext.close() }
+    } finally { await a.close() }
+  })
+
+  // A structured knob arrives as its ORIGINAL TEXT.
+  //
+  // The knob carries a declaration the extension parses itself. Handing back a
+  // parsed array makes a string-typed reader see nothing — and every sandbox/
+  // computer tool requires a structured `sandboxes` knob, so this is the common
+  // case, not an edge.
+  it.skipIf(!url)('config_kv_structured_value_stays_text', async () => {
+    const raw = '[{"name":"local","url":"http://worker:80"}]'
+    const a = await connect(url)
+    const e = await connect(url)
+    try {
+      await a.kvPut(CTX(3000), CONFIG_KV_BUCKET, `t.${T}.conf-ext.servers`, raw, 0)
+      const ext = new Extension(e, { id: 'conf-ext', version: '1', config: { servers: { type: 'list', default: [] } } })
+      await ext.serve(CTX(10_000))
+      try {
+        for (let i = 0; i < 50 && ext.getConfig(T, 'servers', '') !== raw; i++) await delay(100)
+        expect(ext.getConfig(T, 'servers', '')).toBe(raw)
+      } finally { await ext.close() }
+    } finally { await a.close() }
+  })
+
+  // The legacy `{"r":<rev>,"v":<value>}` envelope keeps working.
+  //
+  // Guards the other direction: accepting bare values must not break an agent that
+  // still writes the envelope.
+  it.skipIf(!url)('config_kv_envelope_still_unwraps', async () => {
+    const a = await connect(url)
+    const e = await connect(url)
+    try {
+      await a.kvPut(CTX(3000), CONFIG_KV_BUCKET, `t.${T}.conf-ext.endpoint`, JSON.stringify({ r: 9, v: 'enveloped' }), 0)
+      const ext = new Extension(e, { id: 'conf-ext', version: '1', config: { endpoint: { type: 'string', default: '' } } })
+      await ext.serve(CTX(10_000))
+      try {
+        for (let i = 0; i < 50 && ext.getConfig(T, 'endpoint', '') !== 'enveloped'; i++) await delay(100)
+        expect(ext.getConfig(T, 'endpoint', '')).toBe('enveloped')
+      } finally { await ext.close() }
+    } finally { await a.close() }
+  })
+
+  // The bucket name is a CONTRACT between the agent and every extension.
+  //
+  // An agent writing to a differently-named bucket stores every value where nothing
+  // is looking, and each side still looks healthy on its own.
+  it('config_kv_bucket_name', () => {
+    expect(CONFIG_KV_BUCKET).toBe('cfg')
+  })
+
   it.skipIf(!url)('term_routes_to_dlq', async () => {
     const a = await connect(url)
     try {

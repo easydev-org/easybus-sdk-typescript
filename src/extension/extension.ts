@@ -505,17 +505,47 @@ export class Extension {
     const parts = rest.split('.')
     let value: unknown = undefined
     if (!ev.deleted) {
-      try {
-        const parsed = JSON.parse(ev.value) as unknown
-        value = parsed && typeof parsed === 'object' && 'v' in (parsed as object) ? (parsed as { v: unknown }).v : parsed
-      } catch {
-        return
-      }
+      value = decodeConfigValue(ev.value)
       if (value === undefined || value === null) return
     }
     if (parts.length === 1) this.configStore.setGlobal(tenant, parts[0]!, value, ev.deleted)
     else if (parts.length >= 2) this.configStore.setSession(tenant, parts[0]!, parts.slice(1).join('.'), value, ev.deleted)
   }
+}
+
+/**
+ * Decode one cfg-KV value.
+ *
+ * A knob's value is ultimately a STRING. The JSON shapes we accept are:
+ *
+ *   - `{"r": <rev>, "v": <value>}` — the envelope older agents wrote;
+ *   - a JSON SCALAR ("quoted", 42, true);
+ *   - anything else VERBATIM — a bare URL, a token, a plain word.
+ *
+ * The bare case used to be rejected: `JSON.parse("http://host:80")` throws, and
+ * the old code returned, discarding the entry one key at a time. The extension then
+ * reported every knob unset while the agent and the console both insisted the value
+ * was saved — most visibly after a restart, when no in-memory copy remained.
+ *
+ * A JSON ARRAY or OBJECT is returned as its ORIGINAL TEXT, not parsed. Structured
+ * knobs (a list of sandboxes, a servers map) carry a declaration the extension
+ * parses itself; handing back a parsed array makes a string-typed reader see
+ * nothing.
+ */
+function decodeConfigValue(raw: string): unknown {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw) as unknown
+  } catch {
+    return raw
+  }
+  if (parsed && typeof parsed === 'object' && 'v' in (parsed as object)) {
+    return (parsed as { v: unknown }).v
+  }
+  if (Array.isArray(parsed) || (parsed && typeof parsed === 'object')) {
+    return raw
+  }
+  return parsed
 }
 
 /**
