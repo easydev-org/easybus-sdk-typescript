@@ -11,6 +11,38 @@ permissions:
   packages: write
 
 jobs:
+  # The generated wire code must match the committed proto.
+  #
+  # This is the guard that makes the codegen bot's pull requests worth opening: without it,
+  # someone can hand-edit protocol.proto, forget to regenerate, and every consumer of this
+  # package silently loses the new fields — a field this build does not know about is dropped
+  # on the wire, with no error anywhere.
+  codegen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm ci
+      - name: Regenerate into a temp copy and diff
+        run: |
+          set -euo pipefail
+          export PATH="$PWD/node_modules/.bin:$PATH"
+          TMP="$(mktemp -d)"
+          cp -a . "$TMP/repo"
+          (cd "$TMP/repo/proto" && buf generate --template buf.gen.yaml)
+          if ! diff -r "$TMP/repo/src/gen" src/gen; then
+            echo "::error::src/gen is out of date with proto/easybus/v1/protocol.proto"
+            echo "Run 'npm run gen' and commit the result."
+            exit 1
+          fi
+          echo "generated code is up to date"
+
   test:
     runs-on: ubuntu-latest
     strategy:

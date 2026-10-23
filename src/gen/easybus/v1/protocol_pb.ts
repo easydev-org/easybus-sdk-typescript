@@ -25,7 +25,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file easybus/v1/protocol.proto.
  */
 export const file_easybus_v1_protocol: GenFile = /*@__PURE__*/
-  fileDesc("ChllYXN5YnVzL3YxL3Byb3RvY29sLnByb3RvEgplYXN5YnVzLnYxIuICCghFbnZlbG9wZRIOCgF2GAEgASgFSACIAQESCgoCY2gYAiABKAkSDgoGdGVuYW50GAMgASgJEicKBGtpbmQYBCABKA4yGS5lYXN5YnVzLnYxLkVudmVsb3BlLktpbmQSJwoHcGF5bG9hZBgFIAEoCzIWLmdvb2dsZS5wcm90b2J1Zi5WYWx1ZRIPCgJpZBgGIAEoCUgBiAEBEhUKCHJlcGx5X3RvGAcgASgJSAKIAQESGQoMc2Vzc2lvbl9uYW1lGAggASgJSAOIAQESFAoHcGVuZGluZxgJIAEoBUgEiAEBIkgKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEgwKCEtJTkRfUkVREAESDAoIS0lORF9QVUIQAhIOCgpLSU5EX1FVRVVFEANCBAoCX3ZCBQoDX2lkQgsKCV9yZXBseV90b0IPCg1fc2Vzc2lvbl9uYW1lQgoKCF9wZW5kaW5nIj8KDEVycm9yUGF5bG9hZBIeCgRjb2RlGAEgASgOMhAuZWFzeWJ1cy52MS5Db2RlEg8KB21lc3NhZ2UYAiABKAkiQwoJT2JqZWN0UmVmEgoKAmlkGAEgASgJEhkKDGNvbnRlbnRfdHlwZRgCIAEoCUgAiAEBQg8KDV9jb250ZW50X3R5cGUiTwoQVG9vbENhbGxFbnZlbG9wZRIPCgdjYWxsX2lkGAEgASgJEioKCWFyZ3VtZW50cxgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QipwEKDFRvb2xQcm9ncmVzcxIPCgdjYWxsX2lkGAEgASgJEhUKCHByb2dyZXNzGAIgASgCSACIAQESEgoFcGhhc2UYAyABKAlIAYgBARIRCgR0ZXh0GAQgASgJSAKIAQESKAoIbWV0YWRhdGEYBSABKAsyFi5nb29nbGUucHJvdG9idWYuVmFsdWVCCwoJX3Byb2dyZXNzQggKBl9waGFzZUIHCgVfdGV4dCLqAQoKVG9vbFJlc3VsdBIPCgdjYWxsX2lkGAEgASgJEgwKBHRvb2wYAiABKAkSFAoHY29udGVudBgDIAEoCUgAiAEBEiQKBGRhdGEYBCABKAsyFi5nb29nbGUucHJvdG9idWYuVmFsdWUSKAoIbWV0YWRhdGEYBSABKAsyFi5nb29nbGUucHJvdG9idWYuVmFsdWUSJAoFZXJyb3IYBiABKAsyFS5lYXN5YnVzLnYxLlRvb2xFcnJvchIlCgZvYmplY3QYByABKAsyFS5lYXN5YnVzLnYxLk9iamVjdFJlZkIKCghfY29udGVudCI8CglUb29sRXJyb3ISHgoEY29kZRgBIAEoDjIQLmVhc3lidXMudjEuQ29kZRIPCgdtZXNzYWdlGAIgASgJItYBChFFeHRlbnNpb25WYXJpYWJsZRIMCgRuYW1lGAEgASgJEhgKC2Rlc2NyaXB0aW9uGAIgASgJSACIAQESRQoMZGVzY3JpcHRpb25zGAMgAygLMi8uZWFzeWJ1cy52MS5FeHRlbnNpb25WYXJpYWJsZS5EZXNjcmlwdGlvbnNFbnRyeRINCgVzY29wZRgEIAEoCRozChFEZXNjcmlwdGlvbnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBQg4KDF9kZXNjcmlwdGlvbiI1ChZFeHRlbnNpb25WYXJpYWJsZVZhbHVlEgwKBG5hbWUYASABKAkSDQoFdmFsdWUYAiABKAki6gIKE0V4dGVuc2lvbkNvbmZpZ0l0ZW0SDAoEbmFtZRgBIAEoCRIMCgR0eXBlGAIgASgJEhEKBGtpbmQYAyABKAlIAIgBARINCgVzY29wZRgEIAEoCRIYCgtkZXNjcmlwdGlvbhgFIAEoCUgBiAEBEkcKDGRlc2NyaXB0aW9ucxgGIAMoCzIxLmVhc3lidXMudjEuRXh0ZW5zaW9uQ29uZmlnSXRlbS5EZXNjcmlwdGlvbnNFbnRyeRITCgtlbnVtX3ZhbHVlcxgHIAMoCRInCgdkZWZhdWx0GAggASgLMhYuZ29vZ2xlLnByb3RvYnVmLlZhbHVlEhcKCmNhcGFiaWxpdHkYCSABKAlIAogBARozChFEZXNjcmlwdGlvbnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBQgcKBV9raW5kQg4KDF9kZXNjcmlwdGlvbkINCgtfY2FwYWJpbGl0eSLHAQoJQ29uZmlnU2V0EgwKBG5hbWUYASABKAkSDQoFc2NvcGUYAiABKAkSEAoIcmV2aXNpb24YAyABKAUSJQoFdmFsdWUYBCABKAsyFi5nb29nbGUucHJvdG9idWYuVmFsdWUSGQoMc2Vzc2lvbl9uYW1lGAUgASgJSACIAQESEwoGdGVuYW50GAYgASgJSAGIAQESEAoDYWNrGAcgASgISAKIAQFCDwoNX3Nlc3Npb25fbmFtZUIJCgdfdGVuYW50QgYKBF9hY2siuQEKDkNvbmZpZ1NuYXBzaG90EjYKBmdsb2JhbBgBIAMoCzImLmVhc3lidXMudjEuQ29uZmlnU25hcHNob3QuR2xvYmFsRW50cnkSKAoIc2Vzc2lvbnMYAiABKAsyFi5nb29nbGUucHJvdG9idWYuVmFsdWUaRQoLR2xvYmFsRW50cnkSCwoDa2V5GAEgASgJEiUKBXZhbHVlGAIgASgLMhYuZ29vZ2xlLnByb3RvYnVmLlZhbHVlOgI4ASJaCghIb29rQ2FsbBIMCgRob29rGAEgASgJEhQKDHNlc3Npb25fbmFtZRgCIAEoCRIqCglhcmd1bWVudHMYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0IlgKCUhvb2tFdmVudBIMCgRob29rGAEgASgJEhQKDHNlc3Npb25fbmFtZRgCIAEoCRInCgdwYXlsb2FkGAMgASgLMhYuZ29vZ2xlLnByb3RvYnVmLlZhbHVlImYKDEhvb2tSZXNwb25zZRIKCgJvaxgBIAEoCBIkCgRkYXRhGAIgASgLMhYuZ29vZ2xlLnByb3RvYnVmLlZhbHVlEiQKBWVycm9yGAMgASgLMhUuZWFzeWJ1cy52MS5Ub29sRXJyb3IizwIKDkxpZmVjeWNsZUV2ZW50Ei0KBGtpbmQYASABKA4yHy5lYXN5YnVzLnYxLkxpZmVjeWNsZUV2ZW50LktpbmQSFAoMc2Vzc2lvbl9uYW1lGAIgASgJEhEKBGZyb20YAyABKAlIAIgBARIPCgJ0bxgEIAEoCUgBiAEBEhMKBnBhcmVudBgFIAEoCUgCiAEBEg8KAmlkGAYgASgJSAOIAQESJwoHcGF5bG9hZBgHIAEoCzIWLmdvb2dsZS5wcm90b2J1Zi5WYWx1ZSJjCgRLaW5kEhQKEEtJTkRfVU5TUEVDSUZJRUQQABIQCgxLSU5EX0NSRUFURUQQARIPCgtLSU5EX0ZPUktFRBACEhAKDEtJTkRfUkVOQU1FRBADEhAKDEtJTkRfREVMRVRFRBAEQgcKBV9mcm9tQgUKA190b0IJCgdfcGFyZW50QgUKA19pZCJzCg5NYWlsYm94TWVzc2FnZRIKCgJpZBgBIAEoCRIMCgR0eXBlGAIgASgJEhMKBnNvdXJjZRgDIAEoCUgAiAEBEicKB3BheWxvYWQYBCABKAsyFi5nb29nbGUucHJvdG9idWYuVmFsdWVCCQoHX3NvdXJjZSJdCg9JbnRlcnJ1cHRTaWduYWwSGQoMc2Vzc2lvbl9uYW1lGAEgASgJSACIAQESEwoGcmVhc29uGAIgASgJSAGIAQFCDwoNX3Nlc3Npb25fbmFtZUIJCgdfcmVhc29uIvIBCg1FeHRlbnNpb25Ub29sEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSQQoMZGVzY3JpcHRpb25zGAMgAygLMisuZWFzeWJ1cy52MS5FeHRlbnNpb25Ub29sLkRlc2NyaXB0aW9uc0VudHJ5Ei0KDGlucHV0X3NjaGVtYRgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFwoPcmVxdWlyZWRfY29uZmlnGAUgAygJGjMKEURlc2NyaXB0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEipAIKEUV4dGVuc2lvbk1hbmlmZXN0EgoKAmlkGAEgASgJEg8KB3ZlcnNpb24YAiABKAkSFAoMY2FwYWJpbGl0aWVzGAMgAygJEhAKCGZlYXR1cmVzGAQgAygJEi8KBmNvbmZpZxgFIAMoCzIfLmVhc3lidXMudjEuRXh0ZW5zaW9uQ29uZmlnSXRlbRIoCgV0b29scxgGIAMoCzIZLmVhc3lidXMudjEuRXh0ZW5zaW9uVG9vbBI3ChBwcm9tcHRfdmFyaWFibGVzGAcgAygLMh0uZWFzeWJ1cy52MS5FeHRlbnNpb25WYXJpYWJsZRIRCglsaWZlY3ljbGUYCCADKAkSIwoFaG9va3MYCSABKAsyFC5lYXN5YnVzLnYxLkhvb2tTcGVjIr4CCghIb29rU3BlYxIMCgRjYWxsGAEgAygJEg0KBWV2ZW50GAIgAygJEjsKDGNhbGxfc2NoZW1hcxgDIAMoCzIlLmVhc3lidXMudjEuSG9va1NwZWMuQ2FsbFNjaGVtYXNFbnRyeRI9Cg1ldmVudF9zY2hlbWFzGAQgAygLMiYuZWFzeWJ1cy52MS5Ib29rU3BlYy5FdmVudFNjaGVtYXNFbnRyeRpLChBDYWxsU2NoZW1hc0VudHJ5EgsKA2tleRgBIAEoCRImCgV2YWx1ZRgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3Q6AjgBGkwKEUV2ZW50U2NoZW1hc0VudHJ5EgsKA2tleRgBIAEoCRImCgV2YWx1ZRgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3Q6AjgBKqEBCgRDb2RlEhQKEENPREVfVU5TUEVDSUZJRUQQABIZChVDT0RFX0lOVkFMSURfQVJHVU1FTlQQARISCg5DT0RFX05PVF9GT1VORBACEhoKFkNPREVfUEVSTUlTU0lPTl9ERU5JRUQQAxISCg5DT0RFX1JFVFJZQUJMRRAEEhEKDUNPREVfQlVTSU5FU1MQBRIRCg1DT0RFX0lOVEVSTkFMEAZCPVo7Z2l0aHViLmNvbS9lYXN5ZGV2LW9yZy9lYXN5YnVzLXNkay9nZW4vZWFzeWJ1cy92MTtlYXN5YnVzdjFiBnByb3RvMw", [file_google_protobuf_struct]);
+  fileDesc("ChllYXN5YnVzL3YxL3Byb3RvY29sLnByb3RvEgplYXN5YnVzLnYxIuICCghFbnZlbG9wZRIOCgF2GAEgASgFSACIAQESCgoCY2gYAiABKAkSDgoGdGVuYW50GAMgASgJEicKBGtpbmQYBCABKA4yGS5lYXN5YnVzLnYxLkVudmVsb3BlLktpbmQSJwoHcGF5bG9hZBgFIAEoCzIWLmdvb2dsZS5wcm90b2J1Zi5WYWx1ZRIPCgJpZBgGIAEoCUgBiAEBEhUKCHJlcGx5X3RvGAcgASgJSAKIAQESGQoMc2Vzc2lvbl9uYW1lGAggASgJSAOIAQESFAoHcGVuZGluZxgJIAEoBUgEiAEBIkgKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEgwKCEtJTkRfUkVREAESDAoIS0lORF9QVUIQAhIOCgpLSU5EX1FVRVVFEANCBAoCX3ZCBQoDX2lkQgsKCV9yZXBseV90b0IPCg1fc2Vzc2lvbl9uYW1lQgoKCF9wZW5kaW5nIj8KDEVycm9yUGF5bG9hZBIeCgRjb2RlGAEgASgOMhAuZWFzeWJ1cy52MS5Db2RlEg8KB21lc3NhZ2UYAiABKAkiQwoJT2JqZWN0UmVmEgoKAmlkGAEgASgJEhkKDGNvbnRlbnRfdHlwZRgCIAEoCUgAiAEBQg8KDV9jb250ZW50X3R5cGUicgoQVG9vbENhbGxFbnZlbG9wZRIPCgdjYWxsX2lkGAEgASgJEioKCWFyZ3VtZW50cxgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSIQoGZ3JhbnRzGAMgAygLMhEuZWFzeWJ1cy52MS5HcmFudCKnAQoMVG9vbFByb2dyZXNzEg8KB2NhbGxfaWQYASABKAkSFQoIcHJvZ3Jlc3MYAiABKAJIAIgBARISCgVwaGFzZRgDIAEoCUgBiAEBEhEKBHRleHQYBCABKAlIAogBARIoCghtZXRhZGF0YRgFIAEoCzIWLmdvb2dsZS5wcm90b2J1Zi5WYWx1ZUILCglfcHJvZ3Jlc3NCCAoGX3BoYXNlQgcKBV90ZXh0IuoBCgpUb29sUmVzdWx0Eg8KB2NhbGxfaWQYASABKAkSDAoEdG9vbBgCIAEoCRIUCgdjb250ZW50GAMgASgJSACIAQESJAoEZGF0YRgEIAEoCzIWLmdvb2dsZS5wcm90b2J1Zi5WYWx1ZRIoCghtZXRhZGF0YRgFIAEoCzIWLmdvb2dsZS5wcm90b2J1Zi5WYWx1ZRIkCgVlcnJvchgGIAEoCzIVLmVhc3lidXMudjEuVG9vbEVycm9yEiUKBm9iamVjdBgHIAEoCzIVLmVhc3lidXMudjEuT2JqZWN0UmVmQgoKCF9jb250ZW50IjwKCVRvb2xFcnJvchIeCgRjb2RlGAEgASgOMhAuZWFzeWJ1cy52MS5Db2RlEg8KB21lc3NhZ2UYAiABKAki1gEKEUV4dGVuc2lvblZhcmlhYmxlEgwKBG5hbWUYASABKAkSGAoLZGVzY3JpcHRpb24YAiABKAlIAIgBARJFCgxkZXNjcmlwdGlvbnMYAyADKAsyLy5lYXN5YnVzLnYxLkV4dGVuc2lvblZhcmlhYmxlLkRlc2NyaXB0aW9uc0VudHJ5Eg0KBXNjb3BlGAQgASgJGjMKEURlc2NyaXB0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFCDgoMX2Rlc2NyaXB0aW9uIjUKFkV4dGVuc2lvblZhcmlhYmxlVmFsdWUSDAoEbmFtZRgBIAEoCRINCgV2YWx1ZRgCIAEoCSLRBAoTRXh0ZW5zaW9uQ29uZmlnSXRlbRIMCgRuYW1lGAEgASgJEgwKBHR5cGUYAiABKAkSEQoEa2luZBgDIAEoCUgAiAEBEg0KBXNjb3BlGAQgASgJEhgKC2Rlc2NyaXB0aW9uGAUgASgJSAGIAQESRwoMZGVzY3JpcHRpb25zGAYgAygLMjEuZWFzeWJ1cy52MS5FeHRlbnNpb25Db25maWdJdGVtLkRlc2NyaXB0aW9uc0VudHJ5EhMKC2VudW1fdmFsdWVzGAcgAygJEicKB2RlZmF1bHQYCCABKAsyFi5nb29nbGUucHJvdG9idWYuVmFsdWUSFwoKY2FwYWJpbGl0eRgJIAEoCUgCiAEBEi0KBmZpZWxkcxgKIAMoCzIdLmVhc3lidXMudjEuQ29uZmlnRmllbGRTY2hlbWESFgoJaXRlbV90eXBlGAsgASgJSAOIAQESFgoJbWluX2l0ZW1zGAwgASgFSASIAQESFgoJbWF4X2l0ZW1zGA0gASgFSAWIAQESFgoJbmFtZXNwYWNlGA4gASgJSAaIAQESEwoGZm9ybWF0GA8gASgJSAeIAQEaMwoRRGVzY3JpcHRpb25zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUIHCgVfa2luZEIOCgxfZGVzY3JpcHRpb25CDQoLX2NhcGFiaWxpdHlCDAoKX2l0ZW1fdHlwZUIMCgpfbWluX2l0ZW1zQgwKCl9tYXhfaXRlbXNCDAoKX25hbWVzcGFjZUIJCgdfZm9ybWF0IskBChJFeHRlbnNpb25OYW1lc3BhY2USDAoEbmFtZRgBIAEoCRIYCgtkZXNjcmlwdGlvbhgCIAEoCUgAiAEBEkYKDGRlc2NyaXB0aW9ucxgDIAMoCzIwLmVhc3lidXMudjEuRXh0ZW5zaW9uTmFtZXNwYWNlLkRlc2NyaXB0aW9uc0VudHJ5GjMKEURlc2NyaXB0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFCDgoMX2Rlc2NyaXB0aW9uIpADChFDb25maWdGaWVsZFNjaGVtYRIMCgRuYW1lGAEgASgJEgwKBHR5cGUYAiABKAkSEQoEa2luZBgDIAEoCUgAiAEBEhMKBmZvcm1hdBgEIAEoCUgBiAEBEhMKC2VudW1fdmFsdWVzGAUgAygJEicKB2RlZmF1bHQYBiABKAsyFi5nb29nbGUucHJvdG9idWYuVmFsdWUSEAoIcmVxdWlyZWQYByABKAgSGAoLZGVzY3JpcHRpb24YCCABKAlIAogBARJFCgxkZXNjcmlwdGlvbnMYCSADKAsyLy5lYXN5YnVzLnYxLkNvbmZpZ0ZpZWxkU2NoZW1hLkRlc2NyaXB0aW9uc0VudHJ5Ei0KBmZpZWxkcxgKIAMoCzIdLmVhc3lidXMudjEuQ29uZmlnRmllbGRTY2hlbWEaMwoRRGVzY3JpcHRpb25zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUIHCgVfa2luZEIJCgdfZm9ybWF0Qg4KDF9kZXNjcmlwdGlvbiLHAQoJQ29uZmlnU2V0EgwKBG5hbWUYASABKAkSDQoFc2NvcGUYAiABKAkSEAoIcmV2aXNpb24YAyABKAUSJQoFdmFsdWUYBCABKAsyFi5nb29nbGUucHJvdG9idWYuVmFsdWUSGQoMc2Vzc2lvbl9uYW1lGAUgASgJSACIAQESEwoGdGVuYW50GAYgASgJSAGIAQESEAoDYWNrGAcgASgISAKIAQFCDwoNX3Nlc3Npb25fbmFtZUIJCgdfdGVuYW50QgYKBF9hY2siuQEKDkNvbmZpZ1NuYXBzaG90EjYKBmdsb2JhbBgBIAMoCzImLmVhc3lidXMudjEuQ29uZmlnU25hcHNob3QuR2xvYmFsRW50cnkSKAoIc2Vzc2lvbnMYAiABKAsyFi5nb29nbGUucHJvdG9idWYuVmFsdWUaRQoLR2xvYmFsRW50cnkSCwoDa2V5GAEgASgJEiUKBXZhbHVlGAIgASgLMhYuZ29vZ2xlLnByb3RvYnVmLlZhbHVlOgI4ASJaCghIb29rQ2FsbBIMCgRob29rGAEgASgJEhQKDHNlc3Npb25fbmFtZRgCIAEoCRIqCglhcmd1bWVudHMYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0IlgKCUhvb2tFdmVudBIMCgRob29rGAEgASgJEhQKDHNlc3Npb25fbmFtZRgCIAEoCRInCgdwYXlsb2FkGAMgASgLMhYuZ29vZ2xlLnByb3RvYnVmLlZhbHVlImYKDEhvb2tSZXNwb25zZRIKCgJvaxgBIAEoCBIkCgRkYXRhGAIgASgLMhYuZ29vZ2xlLnByb3RvYnVmLlZhbHVlEiQKBWVycm9yGAMgASgLMhUuZWFzeWJ1cy52MS5Ub29sRXJyb3IizwIKDkxpZmVjeWNsZUV2ZW50Ei0KBGtpbmQYASABKA4yHy5lYXN5YnVzLnYxLkxpZmVjeWNsZUV2ZW50LktpbmQSFAoMc2Vzc2lvbl9uYW1lGAIgASgJEhEKBGZyb20YAyABKAlIAIgBARIPCgJ0bxgEIAEoCUgBiAEBEhMKBnBhcmVudBgFIAEoCUgCiAEBEg8KAmlkGAYgASgJSAOIAQESJwoHcGF5bG9hZBgHIAEoCzIWLmdvb2dsZS5wcm90b2J1Zi5WYWx1ZSJjCgRLaW5kEhQKEEtJTkRfVU5TUEVDSUZJRUQQABIQCgxLSU5EX0NSRUFURUQQARIPCgtLSU5EX0ZPUktFRBACEhAKDEtJTkRfUkVOQU1FRBADEhAKDEtJTkRfREVMRVRFRBAEQgcKBV9mcm9tQgUKA190b0IJCgdfcGFyZW50QgUKA19pZCJzCg5NYWlsYm94TWVzc2FnZRIKCgJpZBgBIAEoCRIMCgR0eXBlGAIgASgJEhMKBnNvdXJjZRgDIAEoCUgAiAEBEicKB3BheWxvYWQYBCABKAsyFi5nb29nbGUucHJvdG9idWYuVmFsdWVCCQoHX3NvdXJjZSJdCg9JbnRlcnJ1cHRTaWduYWwSGQoMc2Vzc2lvbl9uYW1lGAEgASgJSACIAQESEwoGcmVhc29uGAIgASgJSAGIAQFCDwoNX3Nlc3Npb25fbmFtZUIJCgdfcmVhc29uIqoCCg1FeHRlbnNpb25Ub29sEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSQQoMZGVzY3JpcHRpb25zGAMgAygLMisuZWFzeWJ1cy52MS5FeHRlbnNpb25Ub29sLkRlc2NyaXB0aW9uc0VudHJ5Ei0KDGlucHV0X3NjaGVtYRgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFwoPcmVxdWlyZWRfY29uZmlnGAUgAygJEhYKCW5hbWVzcGFjZRgGIAEoCUgAiAEBEhAKCHJlcXVpcmVzGAcgAygJGjMKEURlc2NyaXB0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFCDAoKX25hbWVzcGFjZSLpAQoOUGVybWlzc2lvbkRlY2wSCwoDa2V5GAEgASgJEg0KBWxhYmVsGAIgASgJEkIKDGRlc2NyaXB0aW9ucxgDIAMoCzIsLmVhc3lidXMudjEuUGVybWlzc2lvbkRlY2wuRGVzY3JpcHRpb25zRW50cnkSDAoEcmlzaxgEIAEoCRI0Cg1wYXJhbXNfZmllbGRzGAUgAygLMh0uZWFzeWJ1cy52MS5Db25maWdGaWVsZFNjaGVtYRozChFEZXNjcmlwdGlvbnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIj0KBUdyYW50EgsKA2tleRgBIAEoCRInCgZwYXJhbXMYAiABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0IrkDChFFeHRlbnNpb25NYW5pZmVzdBIKCgJpZBgBIAEoCRIPCgd2ZXJzaW9uGAIgASgJEhQKDGNhcGFiaWxpdGllcxgDIAMoCRIQCghmZWF0dXJlcxgEIAMoCRIvCgZjb25maWcYBSADKAsyHy5lYXN5YnVzLnYxLkV4dGVuc2lvbkNvbmZpZ0l0ZW0SKAoFdG9vbHMYBiADKAsyGS5lYXN5YnVzLnYxLkV4dGVuc2lvblRvb2wSNwoQcHJvbXB0X3ZhcmlhYmxlcxgHIAMoCzIdLmVhc3lidXMudjEuRXh0ZW5zaW9uVmFyaWFibGUSMgoKbmFtZXNwYWNlcxgKIAMoCzIeLmVhc3lidXMudjEuRXh0ZW5zaW9uTmFtZXNwYWNlEhEKCWxpZmVjeWNsZRgIIAMoCRIjCgVob29rcxgJIAEoCzIULmVhc3lidXMudjEuSG9va1NwZWMSLwoLcGVybWlzc2lvbnMYCyADKAsyGi5lYXN5YnVzLnYxLlBlcm1pc3Npb25EZWNsEi4KCGNoYW5uZWxzGAwgAygLMhwuZWFzeWJ1cy52MS5FeHRlbnNpb25DaGFubmVsItoBChBFeHRlbnNpb25DaGFubmVsEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSRAoMZGVzY3JpcHRpb25zGAMgAygLMi4uZWFzeWJ1cy52MS5FeHRlbnNpb25DaGFubmVsLkRlc2NyaXB0aW9uc0VudHJ5EigKBnRvcGljcxgEIAMoCzIYLmVhc3lidXMudjEuQ2hhbm5lbFRvcGljGjMKEURlc2NyaXB0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiqwEKDENoYW5uZWxUb3BpYxIPCgdwYXR0ZXJuGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEkAKDGRlc2NyaXB0aW9ucxgDIAMoCzIqLmVhc3lidXMudjEuQ2hhbm5lbFRvcGljLkRlc2NyaXB0aW9uc0VudHJ5GjMKEURlc2NyaXB0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEivgIKCEhvb2tTcGVjEgwKBGNhbGwYASADKAkSDQoFZXZlbnQYAiADKAkSOwoMY2FsbF9zY2hlbWFzGAMgAygLMiUuZWFzeWJ1cy52MS5Ib29rU3BlYy5DYWxsU2NoZW1hc0VudHJ5Ej0KDWV2ZW50X3NjaGVtYXMYBCADKAsyJi5lYXN5YnVzLnYxLkhvb2tTcGVjLkV2ZW50U2NoZW1hc0VudHJ5GksKEENhbGxTY2hlbWFzRW50cnkSCwoDa2V5GAEgASgJEiYKBXZhbHVlGAIgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdDoCOAEaTAoRRXZlbnRTY2hlbWFzRW50cnkSCwoDa2V5GAEgASgJEiYKBXZhbHVlGAIgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdDoCOAEqoQEKBENvZGUSFAoQQ09ERV9VTlNQRUNJRklFRBAAEhkKFUNPREVfSU5WQUxJRF9BUkdVTUVOVBABEhIKDkNPREVfTk9UX0ZPVU5EEAISGgoWQ09ERV9QRVJNSVNTSU9OX0RFTklFRBADEhIKDkNPREVfUkVUUllBQkxFEAQSEQoNQ09ERV9CVVNJTkVTUxAFEhEKDUNPREVfSU5URVJOQUwQBkI9WjtnaXRodWIuY29tL2Vhc3lkZXYtb3JnL2Vhc3lidXMtc2RrL2dlbi9lYXN5YnVzL3YxO2Vhc3lidXN2MWIGcHJvdG8z", [file_google_protobuf_struct]);
 
 /**
  * Envelope is the generic bus envelope; `payload` carries the business body.
@@ -209,6 +209,19 @@ export type ToolCallEnvelope = Message<"easybus.v1.ToolCallEnvelope"> & {
    * @generated from field: google.protobuf.Struct arguments = 2;
    */
   arguments?: JsonObject | undefined;
+
+  /**
+   * grants are the caller's authorisations for this extension, so the extension can
+   * re-check coverage itself.
+   *
+   * This is NOT trust in the caller: the authoritative store is the agent's, and the
+   * extension re-decides on every call. It exists so the extension does not have to
+   * ask the agent who is calling and what they may do — the agent already knows, so
+   * it says so once per call.
+   *
+   * @generated from field: repeated easybus.v1.Grant grants = 3;
+   */
+  grants: Grant[];
 };
 
 /**
@@ -400,7 +413,13 @@ export type ExtensionConfigItem = Message<"easybus.v1.ExtensionConfigItem"> & {
   name: string;
 
   /**
-   * type: string | number | boolean | enum | json
+   * type: string | number | boolean | enum | json | list | object
+   *
+   * `json` is the FALLBACK: a json knob with no `fields` is a raw blob, which is
+   * how every pre-existing extension declares structured data. `list` / `object`
+   * plus `fields` describe the SHAPE, so a client can render a real form (a card
+   * per list item, a "+" to add, a picker for an enum field) instead of a JSON
+   * textarea, and the agent can validate the value.
    *
    * @generated from field: string type = 2;
    */
@@ -447,6 +466,63 @@ export type ExtensionConfigItem = Message<"easybus.v1.ExtensionConfigItem"> & {
    * @generated from field: optional string capability = 9;
    */
   capability?: string | undefined;
+
+  /**
+   * fields types a structured knob: the keys of an `object`, or of each `list`
+   * item when item_type == "object".
+   *
+   * @generated from field: repeated easybus.v1.ConfigFieldSchema fields = 10;
+   */
+  fields: ConfigFieldSchema[];
+
+  /**
+   * item_type is the element type when type == "list"
+   * (object | string | number | boolean).
+   *
+   * @generated from field: optional string item_type = 11;
+   */
+  itemType?: string | undefined;
+
+  /**
+   * min_items / max_items bound a list (0 = unbounded).
+   *
+   * @generated from field: optional int32 min_items = 12;
+   */
+  minItems?: number | undefined;
+
+  /**
+   * @generated from field: optional int32 max_items = 13;
+   */
+  maxItems?: number | undefined;
+
+  /**
+   * namespace scopes this knob's STORED VALUE to one namespace of the
+   * extension (see ExtensionTool.namespace). Empty = extension-level: shared by
+   * every namespace of that extension, which is what an endpoint/token knob
+   * wants.
+   *
+   * WHY this exists: config used to live in ONE flat per-tenant namespace, so
+   * two extensions declaring `sandboxes` silently shared a single value. The
+   * stored key is now (tenant, extId, namespace, name), so nothing crosses an
+   * extension boundary by accident.
+   *
+   * @generated from field: optional string namespace = 14;
+   */
+  namespace?: string | undefined;
+
+  /**
+   * format narrows a `string` knob: uri | host | path | email | duration |
+   * semver.
+   *
+   * It already existed on structured SUB-fields (ConfigFieldSchema), which is how
+   * a list item's `url` gets a URL input. A TOP-LEVEL knob had no equivalent, so
+   * `easyops-url` could only be described by its name — leaving the agent to
+   * guess what "looks like a URL" means, and leaving the console unable to render
+   * a URL field. Declaring it makes both exact.
+   *
+   * @generated from field: optional string format = 15;
+   */
+  format?: string | undefined;
 };
 
 /**
@@ -455,6 +531,112 @@ export type ExtensionConfigItem = Message<"easybus.v1.ExtensionConfigItem"> & {
  */
 export const ExtensionConfigItemSchema: GenMessage<ExtensionConfigItem> = /*@__PURE__*/
   messageDesc(file_easybus_v1_protocol, 9);
+
+/**
+ * ConfigFieldSchema declares ONE key of a structured config value.
+ * ExtensionNamespace is one declared grouping of an extension's tools and
+ * config (e.g. `pvc`, `build`, `storage`).
+ *
+ * @generated from message easybus.v1.ExtensionNamespace
+ */
+export type ExtensionNamespace = Message<"easybus.v1.ExtensionNamespace"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: optional string description = 2;
+   */
+  description?: string | undefined;
+
+  /**
+   * @generated from field: map<string, string> descriptions = 3;
+   */
+  descriptions: { [key: string]: string };
+};
+
+/**
+ * Describes the message easybus.v1.ExtensionNamespace.
+ * Use `create(ExtensionNamespaceSchema)` to create a new message.
+ */
+export const ExtensionNamespaceSchema: GenMessage<ExtensionNamespace> = /*@__PURE__*/
+  messageDesc(file_easybus_v1_protocol, 10);
+
+/**
+ * ConfigFieldSchema declares ONE key of a structured config value.
+ *
+ * It exists so a structured knob is a form, not a JSON string: `enum` becomes a
+ * picker (e.g. os -> linux | windows | macos | android), `kind: secret` a masked
+ * input, `format: uri` a URL field. `fields` nests one level for an object
+ * field; the renderer and the validator both stop there on purpose.
+ *
+ * @generated from message easybus.v1.ConfigFieldSchema
+ */
+export type ConfigFieldSchema = Message<"easybus.v1.ConfigFieldSchema"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * type: string | number | boolean | enum | json | object
+   *
+   * @generated from field: string type = 2;
+   */
+  type: string;
+
+  /**
+   * kind: value (default) | secret (never echoed back to a client)
+   *
+   * @generated from field: optional string kind = 3;
+   */
+  kind?: string | undefined;
+
+  /**
+   * format narrows a string: uri | host | path | email | duration | semver
+   *
+   * @generated from field: optional string format = 4;
+   */
+  format?: string | undefined;
+
+  /**
+   * @generated from field: repeated string enum_values = 5;
+   */
+  enumValues: string[];
+
+  /**
+   * @generated from field: google.protobuf.Value default = 6;
+   */
+  default?: Value | undefined;
+
+  /**
+   * @generated from field: bool required = 7;
+   */
+  required: boolean;
+
+  /**
+   * @generated from field: optional string description = 8;
+   */
+  description?: string | undefined;
+
+  /**
+   * @generated from field: map<string, string> descriptions = 9;
+   */
+  descriptions: { [key: string]: string };
+
+  /**
+   * @generated from field: repeated easybus.v1.ConfigFieldSchema fields = 10;
+   */
+  fields: ConfigFieldSchema[];
+};
+
+/**
+ * Describes the message easybus.v1.ConfigFieldSchema.
+ * Use `create(ConfigFieldSchemaSchema)` to create a new message.
+ */
+export const ConfigFieldSchemaSchema: GenMessage<ConfigFieldSchema> = /*@__PURE__*/
+  messageDesc(file_easybus_v1_protocol, 11);
 
 /**
  * ConfigSet is a request to set a config value (ack/reject).
@@ -505,7 +687,7 @@ export type ConfigSet = Message<"easybus.v1.ConfigSet"> & {
  * Use `create(ConfigSetSchema)` to create a new message.
  */
 export const ConfigSetSchema: GenMessage<ConfigSet> = /*@__PURE__*/
-  messageDesc(file_easybus_v1_protocol, 10);
+  messageDesc(file_easybus_v1_protocol, 12);
 
 /**
  * ConfigSnapshot is the full applied config: `global` is name->value; the
@@ -531,7 +713,7 @@ export type ConfigSnapshot = Message<"easybus.v1.ConfigSnapshot"> & {
  * Use `create(ConfigSnapshotSchema)` to create a new message.
  */
 export const ConfigSnapshotSchema: GenMessage<ConfigSnapshot> = /*@__PURE__*/
-  messageDesc(file_easybus_v1_protocol, 11);
+  messageDesc(file_easybus_v1_protocol, 13);
 
 /**
  * @generated from message easybus.v1.HookCall
@@ -558,7 +740,7 @@ export type HookCall = Message<"easybus.v1.HookCall"> & {
  * Use `create(HookCallSchema)` to create a new message.
  */
 export const HookCallSchema: GenMessage<HookCall> = /*@__PURE__*/
-  messageDesc(file_easybus_v1_protocol, 12);
+  messageDesc(file_easybus_v1_protocol, 14);
 
 /**
  * @generated from message easybus.v1.HookEvent
@@ -585,7 +767,7 @@ export type HookEvent = Message<"easybus.v1.HookEvent"> & {
  * Use `create(HookEventSchema)` to create a new message.
  */
 export const HookEventSchema: GenMessage<HookEvent> = /*@__PURE__*/
-  messageDesc(file_easybus_v1_protocol, 13);
+  messageDesc(file_easybus_v1_protocol, 15);
 
 /**
  * @generated from message easybus.v1.HookResponse
@@ -612,7 +794,7 @@ export type HookResponse = Message<"easybus.v1.HookResponse"> & {
  * Use `create(HookResponseSchema)` to create a new message.
  */
 export const HookResponseSchema: GenMessage<HookResponse> = /*@__PURE__*/
-  messageDesc(file_easybus_v1_protocol, 14);
+  messageDesc(file_easybus_v1_protocol, 16);
 
 /**
  * @generated from message easybus.v1.LifecycleEvent
@@ -659,7 +841,7 @@ export type LifecycleEvent = Message<"easybus.v1.LifecycleEvent"> & {
  * Use `create(LifecycleEventSchema)` to create a new message.
  */
 export const LifecycleEventSchema: GenMessage<LifecycleEvent> = /*@__PURE__*/
-  messageDesc(file_easybus_v1_protocol, 15);
+  messageDesc(file_easybus_v1_protocol, 17);
 
 /**
  * @generated from enum easybus.v1.LifecycleEvent.Kind
@@ -695,7 +877,7 @@ export enum LifecycleEvent_Kind {
  * Describes the enum easybus.v1.LifecycleEvent.Kind.
  */
 export const LifecycleEvent_KindSchema: GenEnum<LifecycleEvent_Kind> = /*@__PURE__*/
-  enumDesc(file_easybus_v1_protocol, 15, 0);
+  enumDesc(file_easybus_v1_protocol, 17, 0);
 
 /**
  * @generated from message easybus.v1.MailboxMessage
@@ -731,7 +913,7 @@ export type MailboxMessage = Message<"easybus.v1.MailboxMessage"> & {
  * Use `create(MailboxMessageSchema)` to create a new message.
  */
 export const MailboxMessageSchema: GenMessage<MailboxMessage> = /*@__PURE__*/
-  messageDesc(file_easybus_v1_protocol, 16);
+  messageDesc(file_easybus_v1_protocol, 18);
 
 /**
  * @generated from message easybus.v1.InterruptSignal
@@ -753,7 +935,7 @@ export type InterruptSignal = Message<"easybus.v1.InterruptSignal"> & {
  * Use `create(InterruptSignalSchema)` to create a new message.
  */
 export const InterruptSignalSchema: GenMessage<InterruptSignal> = /*@__PURE__*/
-  messageDesc(file_easybus_v1_protocol, 17);
+  messageDesc(file_easybus_v1_protocol, 19);
 
 /**
  * ExtensionTool describes a tool an extension exposes.
@@ -787,6 +969,27 @@ export type ExtensionTool = Message<"easybus.v1.ExtensionTool"> & {
    * @generated from field: repeated string required_config = 5;
    */
   requiredConfig: string[];
+
+  /**
+   * namespace groups this tool with others that do the same kind of job
+   * (pvc, build, storage, ...). The tool's NAME is unchanged — callers keep
+   * invoking `ops-create-pvc`; this only lets a client group it in the UI.
+   *
+   * @generated from field: optional string namespace = 6;
+   */
+  namespace?: string | undefined;
+
+  /**
+   * requires names the permission KEYS a caller must hold to invoke this tool.
+   *
+   * Keys are opaque to the agent: it checks that a grant exists for each one and
+   * stops there. Whether a particular grant COVERS this call depends on the
+   * call's target (which repository? which sandbox?), and only the extension can
+   * work that out — so the matching happens there. See PermissionDecl.
+   *
+   * @generated from field: repeated string requires = 7;
+   */
+  requires: string[];
 };
 
 /**
@@ -794,7 +997,100 @@ export type ExtensionTool = Message<"easybus.v1.ExtensionTool"> & {
  * Use `create(ExtensionToolSchema)` to create a new message.
  */
 export const ExtensionToolSchema: GenMessage<ExtensionTool> = /*@__PURE__*/
-  messageDesc(file_easybus_v1_protocol, 18);
+  messageDesc(file_easybus_v1_protocol, 20);
+
+/**
+ * PermissionDecl is one permission an extension can require.
+ *
+ * A permission is a (key, params) pair, NOT a bare name. `mr.merge` on one
+ * repository is a different authorisation from `mr.merge` on another, so a
+ * session may hold several grants of the same key with different params.
+ *
+ * The agent never interprets `params_fields`. It stores params as an opaque blob,
+ * hands them back to the extension on each call, and lets the extension decide
+ * whether they cover the call. That is what keeps this mechanism generic: the word
+ * "repository" (or "sandbox", or "namespace") appears only in the extension.
+ *
+ * @generated from message easybus.v1.PermissionDecl
+ */
+export type PermissionDecl = Message<"easybus.v1.PermissionDecl"> & {
+  /**
+   * key is the extension-scoped identifier, e.g. "mr.merge".
+   *
+   * @generated from field: string key = 1;
+   */
+  key: string;
+
+  /**
+   * label is the human-readable name shown in a client.
+   *
+   * @generated from field: string label = 2;
+   */
+  label: string;
+
+  /**
+   * @generated from field: map<string, string> descriptions = 3;
+   */
+  descriptions: { [key: string]: string };
+
+  /**
+   * risk tells a client how loudly to warn: read | write | destructive.
+   *
+   * Presentation only — it does not affect enforcement. An extension that wants
+   * to refuse something dangerous must do so itself.
+   *
+   * @generated from field: string risk = 4;
+   */
+  risk: string;
+
+  /**
+   * params_fields describes the params a grant of this key carries, using the SAME
+   * ConfigFieldSchema as a structured config knob so a client renders one form
+   * implementation for both instead of a second type system.
+   *
+   * Empty means the permission is a plain boolean: held or not held.
+   *
+   * @generated from field: repeated easybus.v1.ConfigFieldSchema params_fields = 5;
+   */
+  paramsFields: ConfigFieldSchema[];
+};
+
+/**
+ * Describes the message easybus.v1.PermissionDecl.
+ * Use `create(PermissionDeclSchema)` to create a new message.
+ */
+export const PermissionDeclSchema: GenMessage<PermissionDecl> = /*@__PURE__*/
+  messageDesc(file_easybus_v1_protocol, 21);
+
+/**
+ * Grant is one authorisation handed to an extension at call time.
+ *
+ * It is deliberately minimal: a key plus the params the extension itself declared.
+ * The extension re-decides coverage on every call, so a grant that no longer
+ * matches costs nothing but a refusal.
+ *
+ * @generated from message easybus.v1.Grant
+ */
+export type Grant = Message<"easybus.v1.Grant"> & {
+  /**
+   * @generated from field: string key = 1;
+   */
+  key: string;
+
+  /**
+   * params is opaque to the agent. Its shape is whatever params_fields declared.
+   *
+   * @generated from field: google.protobuf.Struct params = 2;
+   */
+  params?: JsonObject | undefined;
+};
+
+/**
+ * Describes the message easybus.v1.Grant.
+ * Use `create(GrantSchema)` to create a new message.
+ */
+export const GrantSchema: GenMessage<Grant> = /*@__PURE__*/
+  messageDesc(file_easybus_v1_protocol, 22);
 
 /**
  * ExtensionManifest is an extension's self-description.
@@ -838,6 +1134,15 @@ export type ExtensionManifest = Message<"easybus.v1.ExtensionManifest"> & {
   promptVariables: ExtensionVariable[];
 
   /**
+   * namespaces declares this extension's groupings (pvc, build, storage, ...).
+   * Tools and config knobs reference them via `namespace:`; the ORDER here is
+   * what a client uses to lay the groups out.
+   *
+   * @generated from field: repeated easybus.v1.ExtensionNamespace namespaces = 10;
+   */
+  namespaces: ExtensionNamespace[];
+
+  /**
    * @generated from field: repeated string lifecycle = 8;
    */
   lifecycle: string[];
@@ -846,6 +1151,25 @@ export type ExtensionManifest = Message<"easybus.v1.ExtensionManifest"> & {
    * @generated from field: easybus.v1.HookSpec hooks = 9;
    */
   hooks?: HookSpec | undefined;
+
+  /**
+   * permissions declares what this extension can require of a caller. Tools name
+   * these keys in `requires`.
+   *
+   * @generated from field: repeated easybus.v1.PermissionDecl permissions = 11;
+   */
+  permissions: PermissionDecl[];
+
+  /**
+   * channels declares the channels this extension PUBLISHES to.
+   *
+   * Declared, not inferred, so a client can show what an extension can tell it about
+   * ("this one reports repository tags") and offer a subscription without the user having
+   * to know the topic format.
+   *
+   * @generated from field: repeated easybus.v1.ExtensionChannel channels = 12;
+   */
+  channels: ExtensionChannel[];
 };
 
 /**
@@ -853,7 +1177,77 @@ export type ExtensionManifest = Message<"easybus.v1.ExtensionManifest"> & {
  * Use `create(ExtensionManifestSchema)` to create a new message.
  */
 export const ExtensionManifestSchema: GenMessage<ExtensionManifest> = /*@__PURE__*/
-  messageDesc(file_easybus_v1_protocol, 19);
+  messageDesc(file_easybus_v1_protocol, 23);
+
+/**
+ * ExtensionChannel is one channel an extension publishes to.
+ *
+ * @generated from message easybus.v1.ExtensionChannel
+ */
+export type ExtensionChannel = Message<"easybus.v1.ExtensionChannel"> & {
+  /**
+   * name is the channel segment, e.g. "gitea".
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string description = 2;
+   */
+  description: string;
+
+  /**
+   * @generated from field: map<string, string> descriptions = 3;
+   */
+  descriptions: { [key: string]: string };
+
+  /**
+   * topics documents the subject patterns this extension emits, e.g.
+   * "tag.<owner>/<repo>.<tag>". Documentation only: the agent does not parse it.
+   *
+   * @generated from field: repeated easybus.v1.ChannelTopic topics = 4;
+   */
+  topics: ChannelTopic[];
+};
+
+/**
+ * Describes the message easybus.v1.ExtensionChannel.
+ * Use `create(ExtensionChannelSchema)` to create a new message.
+ */
+export const ExtensionChannelSchema: GenMessage<ExtensionChannel> = /*@__PURE__*/
+  messageDesc(file_easybus_v1_protocol, 24);
+
+/**
+ * ChannelTopic documents one kind of message within a channel.
+ *
+ * @generated from message easybus.v1.ChannelTopic
+ */
+export type ChannelTopic = Message<"easybus.v1.ChannelTopic"> & {
+  /**
+   * pattern is the topic shape, with <placeholders>.
+   *
+   * @generated from field: string pattern = 1;
+   */
+  pattern: string;
+
+  /**
+   * @generated from field: string description = 2;
+   */
+  description: string;
+
+  /**
+   * @generated from field: map<string, string> descriptions = 3;
+   */
+  descriptions: { [key: string]: string };
+};
+
+/**
+ * Describes the message easybus.v1.ChannelTopic.
+ * Use `create(ChannelTopicSchema)` to create a new message.
+ */
+export const ChannelTopicSchema: GenMessage<ChannelTopic> = /*@__PURE__*/
+  messageDesc(file_easybus_v1_protocol, 25);
 
 /**
  * @generated from message easybus.v1.HookSpec
@@ -885,7 +1279,7 @@ export type HookSpec = Message<"easybus.v1.HookSpec"> & {
  * Use `create(HookSpecSchema)` to create a new message.
  */
 export const HookSpecSchema: GenMessage<HookSpec> = /*@__PURE__*/
-  messageDesc(file_easybus_v1_protocol, 20);
+  messageDesc(file_easybus_v1_protocol, 26);
 
 /**
  * Code is a standard error code.
