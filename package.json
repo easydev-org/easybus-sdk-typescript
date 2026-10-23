@@ -29,7 +29,7 @@
     "url": "git+https://github.com/easydev-org/easybus-sdk-typescript.git"
   },
   "scripts": {
-    "gen": "buf generate --template proto/buf.gen.yaml --path proto",
+    "gen": "cd proto && buf generate --template buf.gen.yaml",
     "check:types": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

@@ -35,6 +35,11 @@ jobs:
           export PATH="$PWD/node_modules/.bin:$PATH"
           TMP="$(mktemp -d)"
           cp -a . "$TMP/repo"
+          # MUST run inside proto/ with the relative template: `buf generate
+          # --template proto/buf.gen.yaml --path proto` from the repo root targets
+          # `proto/proto`, finds no files, and — this is the trap — still exits 0. The
+          # original check therefore passed while generating nothing at all, which is how a
+          # stale src/gen could look up to date.
           (cd "$TMP/repo/proto" && buf generate --template buf.gen.yaml)
           if ! diff -r "$TMP/repo/src/gen" src/gen; then
             echo "::error::src/gen is out of date with proto/easybus/v1/protocol.proto"
