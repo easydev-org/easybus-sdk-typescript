@@ -126,6 +126,9 @@ export class Extension {
         // Without this the manifest carries per-tool namespace tags that
         // reference groups the client never receives.
         ...(spec.namespace ? { namespace: spec.namespace } : {}),
+        // A tool's requirements must reach the manifest, or the agent cannot refuse an
+        // unauthorised call early and a client cannot know what to ask the user for.
+        ...(spec.requires && spec.requires.length > 0 ? { requires: spec.requires } : {}),
       })
     }
     if (tools.length > 0) caps.push('tools')
@@ -174,6 +177,20 @@ export class Extension {
     }
     if ((this.cfg.callHooks?.length ?? 0) > 0 || (this.cfg.eventHooks?.length ?? 0) > 0) {
       m.hooks = { call: this.cfg.callHooks ?? [], event: this.cfg.eventHooks ?? [], call_schemas: this.cfg.hookSchemas?.call ?? {}, event_schemas: this.cfg.hookSchemas?.event ?? {} }
+    }
+    // Permissions and channels, if the extension declares any.
+    //
+    // These were missing, which is how a manifest could declare `permissions:` and have the
+    // agent receive nothing: the YAML parsed, the field had no place to go, and every tool ran
+    // ungated while the file said otherwise. `caps` is what a client keys on to know whether to
+    // look for them at all.
+    if ((this.cfg.permissions?.length ?? 0) > 0) {
+      m.permissions = this.cfg.permissions
+      caps.push('permissions')
+    }
+    if ((this.cfg.channels?.length ?? 0) > 0) {
+      m.channels = this.cfg.channels
+      caps.push('channels')
     }
     return m
   }

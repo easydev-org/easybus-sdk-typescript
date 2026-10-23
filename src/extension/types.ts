@@ -43,6 +43,36 @@ export interface VariableSpec {
   resolve?: (ctx: AbortSignal, sessionName: string, tenant: string) => Promise<string>
 }
 
+/**
+ * PermissionSpec declares one permission an extension can require.
+ *
+ * Declaring it does not enforce it: the tool calls `requirePermission` with the target it
+ * resolved, and that check is the boundary. Declaring it is what tells a client the key exists,
+ * what it is called, how loudly to warn, and what params a grant must carry.
+ */
+export interface PermissionSpec {
+  key: string
+  label?: string
+  descriptions?: Record<string, string>
+  /** read | write | destructive. Presentation only — it does not affect enforcement. */
+  risk?: string
+  /** The params a grant carries, using the same field schema as a structured config knob. */
+  params?: FieldSpec[]
+}
+
+/**
+ * ChannelSpec declares one channel an extension publishes to.
+ *
+ * A channel is a pub/sub topic, not a command queue: knowing the topic FORMAT is what lets a
+ * user write a subscription pattern ("tag.agentdev/mrflow.>") instead of following everything.
+ */
+export interface ChannelSpec {
+  name: string
+  description?: string
+  descriptions?: Record<string, string>
+  topics?: { pattern: string; description?: string; descriptions?: Record<string, string> }[]
+}
+
 /** ConfigSpec declares one config knob. */
 export interface ConfigSpec {
   description?: string
@@ -124,6 +154,15 @@ export interface Config {
   config?: Record<string, ConfigSpec>
   /** Declared groupings (pvc, build, storage, ...), in the author's ORDER. */
   namespaces?: NamespaceSpec[]
+  /**
+   * Permissions this extension can require.
+   *
+   * Declared here so the manifest carries them to the agent and to a client: a permission nobody
+   * can see is one nobody can grant.
+   */
+  permissions?: PermissionSpec[]
+  /** Channels this extension publishes to, so a user can discover the topic format. */
+  channels?: ChannelSpec[]
   callHooks?: string[]
   eventHooks?: string[]
   lifecycle?: string[]

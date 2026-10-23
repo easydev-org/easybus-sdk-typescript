@@ -17,6 +17,46 @@ export interface ManifestTool {
    * tool keeps its name; it lets a client group the list.
    */
   namespace?: string
+  /**
+   * Permission keys a caller must hold to invoke this tool.
+   *
+   * The manifest is the single source: the dispatcher reads this to refuse a call the session
+   * holds no grant for, and a client reads it to know what to ask the user for.
+   */
+  requires?: string[]
+}
+
+/**
+ * One permission an extension can require.
+ *
+ * A permission is a (key, params) pair, NOT a bare name: "merge in agentdev/mrflow" is a
+ * different authorisation from "merge in other/repo", so a session may hold several grants of
+ * the same key with different params.
+ */
+export interface ManifestPermission {
+  key: string
+  label?: string
+  descriptions?: Record<string, string>
+  /** How loudly a client should warn: read | write | destructive. Presentation only. */
+  risk?: string
+  /**
+   * The params a grant of this key carries, reusing the config field schema so a client renders
+   * one form implementation for both instead of a second type system.
+   */
+  params?: ManifestField[]
+}
+
+/**
+ * One channel an extension publishes to, and the topics it uses.
+ *
+ * Declared so a user can see the topic format before subscribing: "tag.<owner>/<repo>.<tag>" is
+ * something they can write a pattern from; a bare channel name is not.
+ */
+export interface ManifestChannel {
+  name: string
+  description?: string
+  descriptions?: Record<string, string>
+  topics?: { pattern: string; description?: string; descriptions?: Record<string, string> }[]
 }
 
 /**
@@ -116,6 +156,21 @@ export interface Manifest {
   hooks?: ManifestHooks
   /** Declared groupings (pvc, build, storage, ...), in the author's ORDER. */
   namespaces?: ManifestNamespace[]
+  /**
+   * Permissions this extension can require.
+   *
+   * Missing this field is why a manifest could declare `permissions:` and have them silently
+   * dropped: the parser returned the object it was given, the dispatcher looked for a field the
+   * type did not have, and every tool ran ungated while the YAML said otherwise.
+   */
+  permissions?: ManifestPermission[]
+  /**
+   * Channels this extension publishes to.
+   *
+   * Same reasoning: without the field here, a declared channel never reaches a client, so nobody
+   * can discover the topic format to subscribe to.
+   */
+  channels?: ManifestChannel[]
 }
 
 /** ParseManifest parses YAML manifest text. */
