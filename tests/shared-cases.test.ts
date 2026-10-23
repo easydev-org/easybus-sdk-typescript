@@ -20,6 +20,8 @@ import { connect } from '../src/index.js'
 import { Extension, type Config } from '../src/extension/index.js'
 import { CONFIG_KV_BUCKET } from '../src/protocol/protocol.js'
 import { matches as matchesGrant } from '../src/extension/permission.js'
+import { chChannel, matchSubject, parseChannelSubject } from '../src/protocol/channel.js'
+import * as Proto from '../src/protocol/protocol.js'
 
 const CASES_DIR = join(process.cwd(), 'conformance-cases')
 const CTX = (ms: number) => AbortSignal.timeout(ms)
@@ -27,13 +29,17 @@ const CTX = (ms: number) => AbortSignal.timeout(ms)
 interface SharedCase {
   id: string
   why: string
-  kind: 'kv' | 'constant' | 'permission-matching'
+  kind: 'kv' | 'constant' | 'permission-matching' | 'channel-matching' | 'channel-subjects' | 'protocol-subjects'
   kv?: { key: string; value: string }
   knobs?: Record<string, { type: string }>
   expect?: { knob: string; value: unknown; valueType: string }
   constant?: { name: string; value: string }
-  /** permission-matching cases: grant/target pairs and the expected verdict. */
-  cases?: { grant: Record<string, string>; target: Record<string, string>; want: boolean; why: string }[]
+  /**
+   * The assertions for every pure-computation kind. One shape per kind, discriminated by which
+   * fields are present — the JSON already says which, so a separate TS type per kind would only
+   * duplicate it.
+   */
+  cases?: Array<Record<string, any>>
 }
 
 function caseFiles(): string[] {
@@ -72,6 +78,18 @@ describe('shared conformance cases', () => {
         runPermissionMatching(raw)
         return
       }
+      if (raw.kind === 'channel-matching') {
+        runChannelMatching(raw)
+        return
+      }
+      if (raw.kind === 'channel-subjects') {
+        runChannelSubjects(raw)
+        return
+      }
+      if (raw.kind === 'protocol-subjects') {
+        runProtocolSubjects(raw)
+        return
+      }
       await runKV(raw)
     })
   }
@@ -87,7 +105,88 @@ describe('shared conformance cases', () => {
 function runPermissionMatching(c: SharedCase): void {
   expect(c.cases?.length, `${c.id}: no cases`).toBeGreaterThan(0)
   for (const [i, mc] of (c.cases ?? []).entries()) {
-    expect(matchesGrant(mc.grant, mc.target), `${c.id} case ${i}: ${mc.why}`).toBe(mc.want)
+    expect(
+      matchesGrant(mc['grant'] as Record<string, string>, mc['target'] as Record<string, string>),
+      `${c.id} case ${i}: ${String(mc['why'])}`,
+    ).toBe(mc['want'])
+  }
+}
+
+/**
+ * Maps the shared table's function names onto this SDK's exports.
+ *
+ * A missing entry is a test failure, not a skip: the table names a behaviour the protocol has,
+ * so "this SDK does not have it" is exactly what the table should report.
+ */
+function subjectFn(name: string): ((a: Record<string, string>) => unknown) | undefined {
+  const M: Record<string, (a: Record<string, string>) => unknown> = {
+    chMailbox: a => Proto.chMailbox(a['tenant']!, a['session']!),
+    chToolCall: a => Proto.chToolCall(a['tenant']!, a['ext']!, a['tool']!),
+    chToolProgress: a => Proto.chToolProgress(a['tenant']!, a['callId']!),
+    chVariable: a => Proto.chVariable(a['tenant']!, a['ext']!, a['name']!),
+    chSessionEvents: a => Proto.chSessionEvents(a['tenant']!, a['session']!),
+    chSessionChanged: a => Proto.chSessionChanged(a['tenant']!),
+    chInterrupt: a => Proto.chInterrupt(a['tenant']!, a['ext']!),
+    chInterruptAll: a => Proto.chInterruptAll(a['tenant']!),
+    chLifecycle: a => Proto.chLifecycle(a['tenant']!, a['kind']!),
+    chHookCall: a => Proto.chHookCall(a['tenant']!, a['ext']!, a['hook']!),
+    chHookEvent: a => Proto.chHookEvent(a['tenant']!, a['hook']!),
+    chConfig: a => Proto.chConfig(a['tenant']!, a['ext']!),
+    chFileGet: a => Proto.chFileGet(a['tenant']!),
+    chFileIngest: a => Proto.chFileIngest(a['tenant']!),
+    chChannel: a => {
+      try {
+        return chChannel(a['tenant']!, a['channel']!, a['topic']!)
+      } catch {
+        return 'REJECTED'
+      }
+    },
+    subjectTenant: a => Proto.subjectTenant(a['subject']!),
+  }
+  return M[name]
+}
+
+function runChannelMatching(c: SharedCase): void {
+  expect(c.cases?.length, `${c.id}: no cases`).toBeGreaterThan(0)
+  for (const [i, mc] of (c.cases ?? []).entries()) {
+    expect(
+      matchSubject(String(mc['pattern'] ?? ''), String(mc['topic'] ?? '')),
+      `${c.id} case ${i}: ${String(mc.why)}`,
+    ).toBe(mc['want'])
+  }
+}
+
+function runChannelSubjects(c: SharedCase): void {
+  expect(c.cases?.length, `${c.id}: no cases`).toBeGreaterThan(0)
+  for (const [i, mc] of (c.cases ?? []).entries()) {
+    const why = String(mc.why ?? '')
+    const build = mc['build'] as Record<string, string> | undefined
+    if (build) {
+      expect(chChannel(build['tenant']!, build['channel']!, build['topic']!), `${c.id} ${i}: ${why}`)
+        .toBe(mc['want'])
+      continue
+    }
+    const p = mc['parse']
+    if (typeof p === 'string') {
+      const got = parseChannelSubject(p)
+      if (mc['want'] === null) expect(got, `${c.id} ${i}: ${why}`).toBeNull()
+      else expect([got?.tenant, got?.channel, got?.topic], `${c.id} ${i}: ${why}`).toEqual(mc['want'])
+      continue
+    }
+    const r = mc['reject'] as Record<string, string> | undefined
+    if (r) {
+      // A wildcard or empty segment must be refused, not published as a broadcast.
+      expect(() => chChannel(r['tenant']!, r['channel']!, r['topic']!), `${c.id} ${i}: ${why}`).toThrow()
+    }
+  }
+}
+
+function runProtocolSubjects(c: SharedCase): void {
+  expect(c.cases?.length, `${c.id}: no cases`).toBeGreaterThan(0)
+  for (const [i, mc] of (c.cases ?? []).entries()) {
+    const fn = subjectFn(String(mc['fn'] ?? ''))
+    expect(fn, `${c.id} case ${i}: no mapping for ${String(mc['fn'])}`).toBeDefined()
+    expect(fn!(mc['args'] as Record<string, string>), `${c.id} ${i}: ${String(mc.why)}`).toBe(mc['want'])
   }
 }
 
