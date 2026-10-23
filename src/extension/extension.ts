@@ -184,8 +184,21 @@ export class Extension {
     // agent receive nothing: the YAML parsed, the field had no place to go, and every tool ran
     // ungated while the file said otherwise. `caps` is what a client keys on to know whether to
     // look for them at all.
-    if ((this.cfg.permissions?.length ?? 0) > 0) {
-      m.permissions = this.cfg.permissions
+    const perms = this.cfg.permissions ?? []
+    if (perms.length > 0) {
+      // Map to the WIRE names, not the spec's own field names.
+      //
+      // Spreading the spec published `params` (camelCase, and the wrong NAME entirely — the
+      // schema field is `params_fields`) while every reader looks for `paramsFields` / the
+      // snake_case wire form. The declarations arrived with empty params, so the console could
+      // not render a grant form and an extension's declared target shape was lost.
+      m.permissions = perms.map(p => ({
+        key: p.key,
+        label: p.label ?? '',
+        descriptions: p.descriptions ?? {},
+        risk: p.risk ?? '',
+        params_fields: (p.params ?? []).map(f => fieldToWire(f)),
+      }))
       caps.push('permissions')
     }
     if ((this.cfg.channels?.length ?? 0) > 0) {
