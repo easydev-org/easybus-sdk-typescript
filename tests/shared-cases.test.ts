@@ -19,6 +19,7 @@ import { describe, expect, it } from 'vitest'
 import { connect } from '../src/index.js'
 import { Extension, type Config } from '../src/extension/index.js'
 import { CONFIG_KV_BUCKET } from '../src/protocol/protocol.js'
+import { matches as matchesGrant } from '../src/extension/permission.js'
 
 const CASES_DIR = join(process.cwd(), 'conformance-cases')
 const CTX = (ms: number) => AbortSignal.timeout(ms)
@@ -26,11 +27,13 @@ const CTX = (ms: number) => AbortSignal.timeout(ms)
 interface SharedCase {
   id: string
   why: string
-  kind: 'kv' | 'constant'
+  kind: 'kv' | 'constant' | 'permission-matching'
   kv?: { key: string; value: string }
   knobs?: Record<string, { type: string }>
   expect?: { knob: string; value: unknown; valueType: string }
   constant?: { name: string; value: string }
+  /** permission-matching cases: grant/target pairs and the expected verdict. */
+  cases?: { grant: Record<string, string>; target: Record<string, string>; want: boolean; why: string }[]
 }
 
 function caseFiles(): string[] {
@@ -64,10 +67,29 @@ describe('shared conformance cases', () => {
         runConstant(raw)
         return
       }
+      // A pure-computation case: no broker, so every SDK can run it everywhere.
+      if (raw.kind === 'permission-matching') {
+        runPermissionMatching(raw)
+        return
+      }
       await runKV(raw)
     })
   }
 })
+
+/**
+ * The grant-matching rules, from the shared table.
+ *
+ * These are the security boundary of every extension, implemented once per language. Two SDKs that
+ * disagree do not fail loudly — they authorise different things for the same grant, depending on
+ * which language the extension happens to be written in.
+ */
+function runPermissionMatching(c: SharedCase): void {
+  expect(c.cases?.length, `${c.id}: no cases`).toBeGreaterThan(0)
+  for (const [i, mc] of (c.cases ?? []).entries()) {
+    expect(matchesGrant(mc.grant, mc.target), `${c.id} case ${i}: ${mc.why}`).toBe(mc.want)
+  }
+}
 
 function runConstant(c: SharedCase): void {
   const k = c.constant!

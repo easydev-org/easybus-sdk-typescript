@@ -20,12 +20,16 @@ import {
 } from '../protocol/protocol.js'
 import type { Bus, InboxPublishOpts, Subscription } from '../bus/bus.js'
 import type { Envelope } from '../wire.js'
+import type { Grant } from '../wire.js'
 import { valueToJson } from '../transport/nats/nats.js'
 import { ConfigStore } from './config.js'
 import type { Config, FieldSpec, LifecycleEvent, ToolErrorCode, ToolResultData, ToolSpec } from './types.js'
 import { codeToWire } from '../protocol/code.js'
+import { attachGrants, grantsFor, PermissionDenied } from './permission.js'
+import { chChannel } from '../protocol/channel.js'
 
 export * from './types.js'
+export * from './permission.js'
 
 /** maxToolContentBytes caps a tool's `content` text returned to the agent. */
 export const MAX_TOOL_CONTENT_BYTES = 128 * 1024
@@ -212,6 +216,24 @@ export class Extension {
     await this.b.publish(ctx, chToolProgress(tenant, callId), { call_id: callId, ...progress }, { tenant })
   }
 
+  /**
+   * publishChannel publishes an event to a channel.
+   *
+   * The tenant is the one this extension is running for — never a parameter — so an extension
+   * cannot publish into another tenant's channels. `channel` and `topic` are validated as
+   * literal subject segments: a wildcard would turn one publish into a broadcast.
+   *
+   * Choose a topic a user can subscribe to meaningfully. "tag.agentdev/mrflow.v1.2.3" lets a
+   * session follow one repository's tags; a flat "event" pushes the filtering into every
+   * subscriber's code.
+   */
+  async publishChannel(ctx: AbortSignal, tenant: string, channel: string, topic: string, payload: unknown): Promise<void> {
+    const subject = chChannel(tenant, channel, topic)
+    // The wire shape the bus consumer expects: the payload beside an advisory source. The
+    // authoritative channel and tenant come from the SUBJECT, never from here.
+    await this.b.publish(ctx, subject, { payload, source: this.cfg.id }, { tenant })
+  }
+
   private async serveDiscovery(ctx: AbortSignal): Promise<void> {
     const sub = await this.b.subscribe(ctx, CH_DISCOVER, { queue: this.cfg.id })
     this.subs.push(sub)
@@ -241,14 +263,33 @@ export class Extension {
 
   private async handleToolCall(ctx: AbortSignal, name: string, spec: ToolSpec, env: Envelope): Promise<void> {
     const replyTo = env.replyTo ?? ''
-    const call = valueToJson(env.payload) as { call_id?: string; arguments?: Record<string, unknown> }
+    const call = valueToJson(env.payload) as { call_id?: string; arguments?: Record<string, unknown>; grants?: Grant[] }
     if (!call || replyTo === '') return
     const sessionName = env.sessionName ?? ''
     const tenant = env.tenant || subjectTenant(env.ch)
     const callCtl = new AbortController()
     ctx.addEventListener('abort', () => callCtl.abort(), { once: true })
+    // Attach the caller's grants so the tool can check coverage itself. A tool that declares no
+    // `requires` never looks.
+    attachGrants(callCtl.signal, call.grants)
     if (sessionName !== '') this.trackInflight(tenant, sessionName, call.call_id ?? '', callCtl)
     const res: Record<string, unknown> = { call_id: call.call_id, tool: name }
+
+    // COARSE check: is the key present at all?
+    //
+    // Deliberately not "does a grant cover this call": that needs the target, which only the
+    // tool can resolve from its arguments. This refuses early, with a clear message, when the
+    // session holds no such permission whatsoever; the tool's own requirePermission is what
+    // actually enforces coverage.
+    for (const key of spec.requires ?? []) {
+      if (grantsFor(callCtl.signal, key).length === 0) {
+        const denied = new PermissionDenied(key, {}, [])
+        this.untrackInflight(tenant, sessionName, call.call_id ?? '')
+        res.error = { code: codeToWire('CODE_PERMISSION_DENIED'), message: denied.message }
+        await this.b.publish(AbortSignal.timeout(5000), replyTo, res, { tenant })
+        return
+      }
+    }
     try {
       const data = await spec.execute(callCtl.signal, call.arguments ?? {}, call.call_id ?? '', sessionName, tenant)
       if (data.content !== undefined && Buffer.byteLength(data.content, 'utf8') > MAX_TOOL_CONTENT_BYTES) {

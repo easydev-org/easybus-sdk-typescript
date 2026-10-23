@@ -34,6 +34,10 @@ import {
   ToolErrorSchema,
   ToolProgressSchema,
   ToolResultSchema,
+  GrantSchema,
+  PermissionDeclSchema,
+  ExtensionChannelSchema,
+  ChannelTopicSchema,
 } from './gen/easybus/v1/protocol_pb.js'
 
 // ---- message types (generated) --------------------------------------------
@@ -46,6 +50,12 @@ export type {
   ToolProgress,
   ToolResult,
   ToolError,
+  // Permission and channel types. Re-exported so an extension author does not have to reach
+  // into the generated module to describe a grant.
+  Grant,
+  PermissionDecl,
+  ExtensionChannel,
+  ChannelTopic,
   ExtensionVariable,
   ExtensionVariableValue,
   ExtensionConfigItem,

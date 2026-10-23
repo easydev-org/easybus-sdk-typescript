@@ -24,6 +24,14 @@ export interface ToolSpec {
   requiredConfig?: string[]
   /** Grouping of this tool (pvc, build, storage, ...). Organisational only. */
   namespace?: string
+  /**
+   * Permission keys a caller must hold to invoke this tool.
+   *
+   * Checked twice, on purpose. The dispatcher does a COARSE check — is the key present at all —
+   * because it cannot know what the params mean. The tool then calls `requirePermission` with
+   * the target it resolved from its own arguments, and that second check is the real boundary.
+   */
+  requires?: string[]
   execute: (ctx: AbortSignal, args: Record<string, unknown>, callId: string, sessionName: string, tenant: string) => Promise<ToolResultData>
 }
 
