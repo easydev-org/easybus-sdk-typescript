@@ -220,6 +220,10 @@ export function buildConfig(m: Manifest, b: Bindings): Config {
       inputSchema: t.input_schema ?? {},
       requiredConfig: t.required_config ?? [],
       namespace: t.namespace ?? '',
+      // The manifest is the single source for what a tool requires. Dropping it here meant a
+      // tool could declare `requires: [mr.merge]` in YAML and reach the dispatcher with an empty
+      // list — no coarse check, no refusal, and no sign anything was wrong.
+      requires: t.requires ?? [],
     }
   }
   const variables: Record<string, VariableSpec> = {}
@@ -258,6 +262,33 @@ export function buildConfig(m: Manifest, b: Bindings): Config {
     variables,
     config,
     namespaces,
+    // Permissions and channels, carried through from the manifest.
+    //
+    // This was the last link in a chain that silently dropped them: the YAML parsed, the
+    // Manifest type gained the field, and then buildConfig — the function every extension uses to
+    // turn a manifest into a running Config — copied everything EXCEPT these. The extension came
+    // up looking healthy and declared no permissions at all.
+    ...(m.permissions?.length ? {
+      permissions: m.permissions.map(p => ({
+        key: p.key,
+        label: p.label ?? '',
+        descriptions: p.descriptions ?? {},
+        risk: p.risk ?? '',
+        params: toFieldSpecs(p.params ?? []),
+      })),
+    } : {}),
+    ...(m.channels?.length ? {
+      channels: m.channels.map(c => ({
+        name: c.name,
+        description: c.description ?? '',
+        descriptions: c.descriptions ?? {},
+        topics: (c.topics ?? []).map(t => ({
+          pattern: t.pattern,
+          description: t.description ?? '',
+          descriptions: t.descriptions ?? {},
+        })),
+      })),
+    } : {}),
     callHooks: m.hooks?.call ?? [],
     eventHooks: m.hooks?.event ?? [],
     lifecycle: m.lifecycle ?? [],

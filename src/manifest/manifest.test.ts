@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseManifest } from './manifest.js'
+import { buildConfig, parseManifest } from './manifest.js'
 import { Extension } from '../extension/extension.js'
 import { connect } from '../index.js'
 
@@ -58,25 +58,23 @@ describe('manifest permissions and channels', () => {
   // The end of the chain: what the agent actually receives. Parsing correctly is not enough if
   // buildManifest drops it on the way out.
   it('publishes permissions, channels and requires in the served manifest', async () => {
-    const m = parseManifest(YAML)
-    const bus = await connect('nats://127.0.0.1:4222').catch(() => null)
-    if (bus === null) {
-      // No broker here; assert the pure build step instead.
-      const ext = new Extension({ publish: async () => {} } as never, {
-        id: m.id,
-        version: m.version,
-        permissions: m.permissions,
-        channels: m.channels,
-        tools: { merge: { description: 'merge it', requires: ['repo.merge'], execute: async () => ({}) } },
-      })
-      const wire = (ext as unknown as { buildManifest(): Record<string, unknown> }).buildManifest()
-      expect(wire['permissions']).toHaveLength(1)
-      expect(wire['channels']).toHaveLength(1)
-      expect((wire['tools'] as Array<Record<string, unknown>>)[0]?.['requires']).toEqual(['repo.merge'])
-      expect(wire['capabilities']).toContain('permissions')
-      expect(wire['capabilities']).toContain('channels')
-      return
-    }
-    await bus.close()
+    // Go through buildConfig — the function every extension actually uses. Building a Config by
+    // hand here would have hidden the bug this test exists for: buildConfig copied everything
+    // EXCEPT permissions, requires and channels, so an extension came up healthy and declared
+    // nothing.
+    const cfg = buildConfig(parseManifest(YAML), {
+      handlers: { merge: { execute: async () => ({}) } },
+    })
+    expect(cfg.permissions).toHaveLength(1)
+    expect(cfg.channels).toHaveLength(1)
+    expect(cfg.tools?.['merge']?.requires).toEqual(['repo.merge'])
+
+    const ext = new Extension({ publish: async () => {} } as never, cfg)
+    const wire = (ext as unknown as { buildManifest(): Record<string, unknown> }).buildManifest()
+    expect(wire['permissions']).toHaveLength(1)
+    expect(wire['channels']).toHaveLength(1)
+    expect((wire['tools'] as Array<Record<string, unknown>>)[0]?.['requires']).toEqual(['repo.merge'])
+    expect(wire['capabilities']).toContain('permissions')
+    expect(wire['capabilities']).toContain('channels')
   })
 })
