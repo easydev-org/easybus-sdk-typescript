@@ -323,6 +323,54 @@ export class Agent {
     this.presenceWatch?.stop()
     await this.b.close()
   }
+
+  /**
+   * consumeDLQ subscribes to every dead-letter message and hands each to `handler`.
+   *
+   * Dead letters are messages a consumer gave up on after repeated failures. Without this, they
+   * accumulate in the DLQ stream and nobody finds out — the failure is real but silent, which is
+   * the worst combination. Returns a stop function.
+   *
+   * The handler returning false means "leave it in the DLQ" (it is nacked and retried later);
+   * returning true acks it. A message that cannot be resolved to a tenant or session is
+   * TERMINATED rather than dead-lettered again: dead letters of dead letters help nobody.
+   */
+  async consumeDLQ(
+    ctx: AbortSignal,
+    handler: (m: { id: string; tenant: string; sessionName: string; type: string; payload: unknown }) => boolean | Promise<boolean>,
+  ): Promise<() => void> {
+    const sub = await this.b.inboxConsume(ctx, { subject: 'easybus.*.dlq.>' })
+    let stopped = false
+    void (async () => {
+      for (;;) {
+        if (stopped) return
+        const msg = await sub.next(ctx)
+        if (msg === null) return
+        const env = msg.envelope
+        const sessionName = env.sessionName ?? ''
+        const tenant = env.tenant || subjectTenant(env.ch)
+        const m = valueToJson(env.payload) as { id?: string; type?: string; payload?: unknown }
+        if (sessionName === '' || tenant === '' || env.id === undefined || m?.id === undefined) {
+          // A dead letter with no address cannot be retried meaningfully.
+          msg.termNoDLQ()
+          continue
+        }
+        const ok = await handler({
+          id: m.id,
+          tenant,
+          sessionName,
+          type: m.type ?? '',
+          payload: m.payload,
+        })
+        if (ok) msg.ack()
+        else msg.nak(5000)
+      }
+    })()
+    return () => {
+      stopped = true
+      void sub.close()
+    }
+  }
 }
 
 export { chInterruptAll }
