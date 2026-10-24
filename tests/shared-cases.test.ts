@@ -29,7 +29,16 @@ const CTX = (ms: number) => AbortSignal.timeout(ms)
 interface SharedCase {
   id: string
   why: string
-  kind: 'kv' | 'constant' | 'permission-matching' | 'channel-matching' | 'channel-subjects' | 'protocol-subjects'
+  kind:
+    | 'kv'
+    | 'constant'
+    | 'permission-matching'
+    | 'channel-matching'
+    | 'channel-subjects'
+    | 'protocol-subjects'
+    // Not assertions: the INPUTS to the broker suite, skipped here (see the loop below).
+    | 'broker-fixture'
+    | 'broker-cases'
   kv?: { key: string; value: string }
   knobs?: Record<string, { type: string }>
   expect?: { knob: string; value: unknown; valueType: string }
@@ -88,6 +97,13 @@ describe('shared conformance cases', () => {
       }
       if (raw.kind === 'protocol-subjects') {
         runProtocolSubjects(raw)
+        return
+      }
+      // Not a case: the INPUTS to the broker suite (the extension it builds, the calls it makes).
+      // They live in the shared directory so every SDK reads the same bytes, and are read by
+      // tests/broker-cases.test.ts. Running them through the generic loop made them demand a
+      // broker they never needed.
+      if (raw.kind === 'broker-fixture' || raw.kind === 'broker-cases') {
         return
       }
       await runKV(raw)
