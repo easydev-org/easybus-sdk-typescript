@@ -43,6 +43,34 @@ const table = JSON.parse(readFileSync(join(CASES, 'broker-cases.json'), 'utf8'))
 
 const url = process.env['EASYBUS_NATS_URL']
 
+/**
+ * Whether a broker is actually reachable.
+ *
+ * EASYBUS_NATS_URL being SET is not the same as a broker being there: the test matrix exports it
+ * pointing at 127.0.0.1:4222 while starting no server, so the variable is non-empty and the
+ * connection is refused. The other suites in this repo probe for the nats-server BINARY and skip;
+ * this one connects instead, so a refused connection surfaced as eight failures with
+ * "ClosedConnectionError" rather than as a skip.
+ */
+async function brokerReachable(): Promise<boolean> {
+  if (!url) return false
+  try {
+    const bus = await connect(url)
+    await bus.close()
+    return true
+  } catch {
+    return false
+  }
+}
+
+const reachable = await brokerReachable()
+
+if (!reachable && url) {
+  console.warn(
+    `[broker-cases] EASYBUS_NATS_URL=${url} but nothing answered there; broker cases will skip`,
+  )
+}
+
 /** Builds the conformance extension FROM THE SHARED FIXTURE. */
 function buildExt(bus: Bus): Extension {
   const tools: Record<string, ToolSpec> = {}
@@ -140,7 +168,7 @@ function buildExt(bus: Bus): Extension {
 
 describe('shared broker cases', () => {
   for (const c of table.cases) {
-    it.skipIf(!url)(`${c.id}: ${c.why}`, async () => {
+    it.skipIf(!reachable)(`${c.id}: ${c.why}`, async () => {
       const agBus = await connect(url!)
       const exBus = await connect(url!)
       const ext = buildExt(exBus)
