@@ -461,7 +461,18 @@ class NatsBus implements Bus {
   }
 
   async close(): Promise<void> {
-    await this.nc.drain()
+    // Idempotent, and tolerant of an ALREADY-broken connection.
+    //
+    // drain() throws "closed connection" when the connection is gone — which happens for ordinary
+    // reasons: a broker restart, a network blip, or a test that closes a bus it already lost.
+    // Cleanup that throws turns an ordinary shutdown into an error the caller must special-case,
+    // and in tests it masquerades as a failure of whatever ran before it.
+    if (this.nc.isClosed()) return
+    try {
+      await this.nc.drain()
+    } catch {
+      // The connection is already unusable; nothing to drain.
+    }
   }
 }
 

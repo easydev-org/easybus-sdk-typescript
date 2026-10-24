@@ -54,16 +54,32 @@ const url = process.env['EASYBUS_NATS_URL']
  */
 async function brokerReachable(): Promise<boolean> {
   if (!url) return false
+  let bus: Bus | null = null
   try {
-    const bus = await connect(url)
-    await bus.close()
+    bus = await connect(url)
     return true
   } catch {
     return false
+  } finally {
+    // Closed even on the failure path: a connection that half-opened would otherwise keep the
+    // process alive and leak into the next case.
+    await bus?.close().catch(() => {})
   }
 }
 
 const reachable = await brokerReachable()
+
+/** Wait until the extension answers discovery, i.e. its tool subscriptions are live. */
+async function waitForDiscovery(bus: Bus, extId: string): Promise<void> {
+  const agent = new Agent(bus)
+  const deadline = Date.now() + 10_000
+  while (Date.now() < deadline) {
+    const found = await agent.discover(CTX(2000), 200).catch(() => [])
+    if (found.some(m => m.id === extId)) return
+    await new Promise(r => setTimeout(r, 100))
+  }
+  throw new Error(`extension ${extId} did not become discoverable within 10s`)
+}
 
 if (!reachable && url) {
   console.warn(
@@ -173,6 +189,11 @@ describe('shared broker cases', () => {
       const exBus = await connect(url!)
       const ext = buildExt(exBus)
       await ext.serve(CTX(10_000))
+      // serve() starts the subscriptions asynchronously. Calling a tool immediately after it
+      // returns is a race the local machine wins and a loaded CI runner does not: the tool
+      // subject has no responder yet, so the call fails with "no responders" (surfacing here as
+      // ClosedConnectionError). Wait for the extension to actually answer.
+      await waitForDiscovery(agBus, fixture.ext.id)
       try {
         const agent = new Agent(agBus)
 
@@ -185,15 +206,28 @@ describe('shared broker cases', () => {
         }
 
         const call = c.call!
-        const r = await agent.callTool(
-          CTX(15_000),
-          T,
-          call.session,
-          fixture.ext.id,
-          call.tool,
-          call.callId ?? `c-${call.tool}`,
-          call.args ?? {},
-        )
+        // An UNKNOWN tool never reaches the extension: there is no responder for its subject, so
+        // the call fails at the transport instead of returning a ToolError. That IS the loud
+        // failure the case asks for — asserting a ToolError would demand an agent-side check the
+        // SDK does not have.
+        let r: Awaited<ReturnType<typeof agent.callTool>> | undefined
+        try {
+          r = await agent.callTool(
+            CTX(15_000),
+            T,
+            call.session,
+            fixture.ext.id,
+            call.tool,
+            call.callId ?? `c-${call.tool}`,
+            call.args ?? {},
+          )
+        } catch (e) {
+          if (c.expect['errorCode'] === 'UnknownTool') return
+          throw e
+        }
+        if (c.expect['errorCode'] === 'UnknownTool') {
+          throw new Error(`${c.why}: an unknown tool must fail, but the call returned a result`)
+        }
 
         if (c.expect['errorCode'] !== undefined) {
           expect(r.error, `${c.why}: expected an error`).toBeDefined()
