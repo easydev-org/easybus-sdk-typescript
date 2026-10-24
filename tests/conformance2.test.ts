@@ -435,6 +435,36 @@ describe('conformance2', () => {
     } finally { await a.close() }
   })
 
+  // The consumer side of the DLQ. The other DLQ cases prove a message ARRIVES there; this proves
+  // something can pick it up, which is the difference between a queue and a graveyard.
+  it.skipIf(!url)('dlq_consumer_delivers', async () => {
+    const a = await connect(url)
+    try {
+      const seen: string[] = []
+      // consumeDLQ is on the Agent, not the Bus: it needs the tenant/session resolution the
+      // agent layer provides, not just a raw subscription.
+      const agent = new Agent(a)
+      const stop = await agent.consumeDLQ(CTX(20_000), (m: { type: string }) => {
+        seen.push(m.type)
+        return true // ack
+      })
+      // The subscription is established asynchronously; give it a beat so the test fails on
+      // DELIVERY rather than on a subscribe race.
+      await delay(500)
+      const tag = `dlq-deliver-${Math.random().toString(36).slice(2, 8)}`
+      await a.inboxPublish(
+        CTX(3000),
+        `easybus.${T}.dlq.${tag}`,
+        { id: tag, type: tag, payload: { n: 1 } },
+        { id: tag, tenant: T, sessionName: 'sess-dlq2' },
+      )
+      const deadline = Date.now() + 15_000
+      while (Date.now() < deadline && !seen.includes(tag)) await delay(100)
+      expect(seen, `consumeDLQ never delivered ${tag}; saw ${JSON.stringify(seen)}`).toContain(tag)
+      stop()
+    } finally { await a.close() }
+  })
+
   it.skipIf(!url)('presence_replica_keys', async () => {
     // Each replica AND the observer have their OWN connection: a replica's
     // close() drains its bus, so a replica must never share one.
