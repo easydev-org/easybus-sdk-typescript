@@ -1,6 +1,6 @@
 {
   "name": "@easydev-org/easybus-sdk",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "easybus protocol SDK (TypeScript) — the multi-tenant extension bus. Wire contract: proto/easybus/v1/protocol.proto (the single source of truth, shared with easybus-sdk Go/Python/Rust).",
   "type": "module",
   "main": "./dist/index.js",
@@ -21,8 +21,8 @@
     "README.md"
   ],
   "publishConfig": {
-    "registry": "https://registry.npmjs.org",
-    "access": "public"
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
   },
   "repository": {
     "type": "git",

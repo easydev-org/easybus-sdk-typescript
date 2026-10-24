@@ -3,6 +3,9 @@ name: ci
 on:
   push:
     branches: [main]
+    # Tags too: the publish job below runs only for them, and a tag push that did not start
+    # this workflow would never publish anything.
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -114,3 +117,46 @@ jobs:
       - name: down
         if: always()
         run: docker compose down -v
+
+  # Publish the package to GitHub Packages on a version tag.
+  #
+  # Consumers install it from here (a `file:` tarball vendored into an extension was a second
+  # copy that had to be refreshed by hand, and was forgotten twice — the extension then compiled
+  # against a contract the deployment no longer spoke).
+  #
+  # Runs only on `v*` tags, and only after test + conformance: a package that cannot pass its own
+  # suite must not become what everyone else depends on.
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, conformance]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@easydev-org'
+      - run: npm ci
+      - run: npx tsc -p tsconfig.build.json
+
+      # The tag is the version consumers ask for, so an accidental mismatch between tag and
+      # package.json would publish something nobody can reference. Fail instead.
+      - name: Version must match the tag
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $pkg"
+            exit 1
+          fi
+          echo "publishing $pkg"
+
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
