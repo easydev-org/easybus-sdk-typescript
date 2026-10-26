@@ -1,6 +1,6 @@
 {
   "name": "@easydev-org/easybus-sdk",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "easybus protocol SDK (TypeScript) — the multi-tenant extension bus. Wire contract: proto/easybus/v1/protocol.proto (the single source of truth, shared with easybus-sdk Go/Python/Rust).",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,6 +10,39 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./agent": {
+      "types": "./dist/agent/agent.d.ts",
+      "default": "./dist/agent/agent.js"
+    },
+    "./bus": {
+      "types": "./dist/bus/index.d.ts",
+      "default": "./dist/bus/index.js"
+    },
+    "./extension": {
+      "types": "./dist/extension/extension.d.ts",
+      "default": "./dist/extension/extension.js"
+    },
+    "./protocol": {
+      "types": "./dist/protocol/index.d.ts",
+      "default": "./dist/protocol/index.js"
+    },
+    "./identity": {
+      "types": "./dist/identity/index.d.ts",
+      "default": "./dist/identity/index.js"
+    },
+    "./i18n": {
+      "types": "./dist/i18n/index.d.ts",
+      "default": "./dist/i18n/index.js"
+    },
+    "./manifest": {
+      "types": "./dist/manifest/index.d.ts",
+      "default": "./dist/manifest/index.js"
+    },
+    "./transport/nats": {
+      "types": "./dist/transport/nats/index.d.ts",
+      "default": "./dist/transport/nats/index.js"
+    },
+    "./package.json": "./package.json",
     "./*": {
       "types": "./dist/*.d.ts",
       "default": "./dist/*.js"
