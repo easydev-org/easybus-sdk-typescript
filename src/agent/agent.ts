@@ -197,7 +197,30 @@ export class Agent {
 
   /** CallTool calls one tool and returns its result. */
   async callTool(ctx: AbortSignal, tenant: string, sessionName: string, extId: string, tool: string, callId: string, args: Record<string, unknown>): Promise<ToolResult> {
-    const reply = await this.b.request(ctx, chToolCall(tenant, extId, tool), { call_id: callId, arguments: args }, { sessionName, tenant })
+    return this.callToolWithGrants(ctx, tenant, sessionName, extId, tool, callId, args, [])
+  }
+
+  /**
+   * Call a tool, passing the caller's authorisations.
+   *
+   * `callTool` sends none, and a tool whose manifest declares `requires` then fails with
+   * "permission denied: <key> (no grant held)". That is correct behaviour and it is why this method
+   * exists separately rather than being an optional argument: the two callers have genuinely
+   * different authority, and making it optional invites calling the wrong one by accident.
+   */
+  async callToolWithGrants(
+    ctx: AbortSignal,
+    tenant: string,
+    sessionName: string,
+    extId: string,
+    tool: string,
+    callId: string,
+    args: Record<string, unknown>,
+    grants: Array<{ key: string; params?: Record<string, unknown> }>,
+  ): Promise<ToolResult> {
+    const body: Record<string, unknown> = { call_id: callId, arguments: args }
+    if (grants.length > 0) body['grants'] = grants
+    const reply = await this.b.request(ctx, chToolCall(tenant, extId, tool), body, { sessionName, tenant })
     if (!reply) throw new Error(`tool "${tool}": no reply`)
     const tr = valueToJson(reply.payload) as { content?: string; data?: unknown; metadata?: unknown; error?: { code: string | number; message: string }; object?: { id: string; content_type?: string } }
     const r: ToolResult = { content: tr.content ?? '', data: tr.data, metadata: tr.metadata }
