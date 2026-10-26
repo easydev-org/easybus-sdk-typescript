@@ -22,6 +22,7 @@ import { CONFIG_KV_BUCKET } from '../src/protocol/protocol.js'
 import { matches as matchesGrant } from '../src/extension/permission.js'
 import { chChannel, matchSubject, parseChannelSubject } from '../src/protocol/channel.js'
 import * as Proto from '../src/protocol/protocol.js'
+import { isAbsentKey, isConsumerGone, isLostRace } from '../src/protocol/errors.js'
 
 const CASES_DIR = join(process.cwd(), 'conformance-cases')
 const CTX = (ms: number) => AbortSignal.timeout(ms)
@@ -36,6 +37,7 @@ interface SharedCase {
     | 'channel-matching'
     | 'channel-subjects'
     | 'protocol-subjects'
+    | 'error-classification'
     // Not assertions: the INPUTS to the broker suite, skipped here (see the loop below).
     | 'broker-fixture'
     | 'broker-cases'
@@ -97,6 +99,10 @@ describe('shared conformance cases', () => {
       }
       if (raw.kind === 'protocol-subjects') {
         runProtocolSubjects(raw)
+        return
+      }
+      if (raw.kind === 'error-classification') {
+        runErrorClassification(raw)
         return
       }
       // Not a case: the INPUTS to the broker suite (the extension it builds, the calls it makes).
@@ -203,6 +209,46 @@ function runProtocolSubjects(c: SharedCase): void {
     const fn = subjectFn(String(mc['fn'] ?? ''))
     expect(fn, `${c.id} case ${i}: no mapping for ${String(mc['fn'])}`).toBeDefined()
     expect(fn!(mc['args'] as Record<string, string>), `${c.id} ${i}: ${String(mc.why)}`).toBe(mc['want'])
+  }
+}
+
+/**
+ * Pin how a transport error is CATEGORISED.
+ *
+ * The shared half of the KV fix. Every SDK used to collapse every failure into a zero value
+ * (`catch { return 0 }`), which made a lost race and a broken connection indistinguishable. The
+ * zero value is CORRECT for a lost race and catastrophic for anything else, so the category is
+ * the contract.
+ *
+ * An empty `err` means "no error at all": it must match nothing. A classifier that reports nil as
+ * a fault would send every success path down a fault branch and misread its own result.
+ */
+function runErrorClassification(c: SharedCase): void {
+  expect(c.cases?.length, `${c.id}: no cases`).toBeGreaterThan(0)
+  for (const [i, mc] of (c.cases ?? []).entries()) {
+    const msg = String(mc['err'] ?? '')
+    const err: unknown = msg === '' ? undefined : new Error(msg)
+    const why = String(mc.why ?? '')
+
+    expect(isLostRace(err), `${c.id} ${i} IsLostRace(${JSON.stringify(msg)}): ${why}`).toBe(
+      Boolean(mc['lostRace']),
+    )
+    expect(isAbsentKey(err), `${c.id} ${i} IsAbsentKey(${JSON.stringify(msg)}): ${why}`).toBe(
+      Boolean(mc['absent']),
+    )
+    expect(
+      isConsumerGone(err),
+      `${c.id} ${i} IsConsumerGone(${JSON.stringify(msg)}): ${why}`,
+    ).toBe(Boolean(mc['consumerGone']))
+  }
+
+  // The categories must be mutually exclusive: a fault belonging to two would make behaviour
+  // depend on clause order rather than on the fault.
+  for (const [i, mc] of (c.cases ?? []).entries()) {
+    const msg = String(mc['err'] ?? '')
+    const err: unknown = msg === '' ? undefined : new Error(msg)
+    const hits = [isLostRace(err), isAbsentKey(err), isConsumerGone(err)].filter(Boolean).length
+    expect(hits, `${c.id} ${i} (${JSON.stringify(msg)}): matches ${hits} categories`).toBeLessThanOrEqual(1)
   }
 }
 

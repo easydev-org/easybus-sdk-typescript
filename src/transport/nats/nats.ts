@@ -11,6 +11,7 @@ import {
   headers as natsHeaders,
   createInbox,
 } from '@nats-io/nats-core'
+import { isAbsentKey, isAlreadyExists, isLostRace } from '../../protocol/errors.js'
 import { connect as natsConnect } from '@nats-io/transport-node'
 import { jetstream, jetstreamManager, type JetStreamClient, type JetStreamManager, type Consumer } from '@nats-io/jetstream'
 import { Kvm, type KV } from '@nats-io/kv'
@@ -429,8 +430,13 @@ class NatsBus implements Bus {
     const kv = await this.kv(bucket, ttlMs)
     try {
       return await kv.create(key, value)
-    } catch {
-      return 0
+    } catch (e) {
+      // "key exists" is the normal LOSING side of a claim race: the caller reads 0 as "somebody
+      // else has it" and backs off. Every OTHER error is reported — swallowing them made a broken
+      // bucket indistinguishable from a lost race, so a replica that could not reach the broker
+      // believed another replica owned the session and never ran the turn.
+      if (isAlreadyExists(e)) return 0
+      throw e
     }
   }
   async kvPut(ctx: AbortSignal, bucket: string, key: string, value: string, ttlMs: number): Promise<void> {
@@ -443,16 +449,27 @@ class NatsBus implements Bus {
       const e = await kv.get(key)
       if (!e || e.operation !== 'PUT') return ''
       return e.string()
-    } catch {
-      return ''
+    } catch (e) {
+      // A MISS, not a failure: the key is absent (deleted, or expired under a short TTL — the
+      // server reports "no message found" for that). Callers already treat '' as absent.
+      //
+      // Any OTHER error is reported. Swallowing everything made a dead connection or a missing
+      // bucket look exactly like "the key is not set", so a caller took its default branch and
+      // never retried.
+      if (isAbsentKey(e)) return ''
+      throw e
     }
   }
   async kvCas(ctx: AbortSignal, bucket: string, key: string, value: string, revision: number): Promise<number> {
     try {
       const kv = await this.kv(bucket)
       return await kv.update(key, value, revision)
-    } catch {
-      return 0
+    } catch (e) {
+      // A lost CAS is a normal outcome: 0 with NO error. Anything else is a real failure, and
+      // collapsing the two is what let a network blip abort a healthy in-flight turn — `Renew`
+      // reads 0 as "the lease was LOST".
+      if (isLostRace(e)) return 0
+      throw e
     }
   }
   async kvDelete(ctx: AbortSignal, bucket: string, key: string): Promise<void> {
