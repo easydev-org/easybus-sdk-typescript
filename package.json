@@ -1,6 +1,6 @@
 {
   "name": "@easydev-org/easybus-sdk",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "easybus protocol SDK (TypeScript) — the multi-tenant extension bus. Wire contract: proto/easybus/v1/protocol.proto (the single source of truth, shared with easybus-sdk Go/Python/Rust).",
   "type": "module",
   "main": "./dist/index.js",
