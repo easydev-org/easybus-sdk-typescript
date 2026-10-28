@@ -66,6 +66,20 @@ export interface UISpec {
    * falling through to index.html, which would look like a successful call that returned HTML.
    */
   handler?: UIHandler
+  /**
+   * What this UI is for, keyed by BCP-47 language tag (`en`, `zh`).
+   *
+   * The host can discover that a UI exists but not what it does, and only the extension knows. The
+   * host picks the entry matching the reader's locale and falls back to whatever is there.
+   */
+  descriptions?: Record<string, string>
+  /**
+   * A path under `base` serving the shelf icon, e.g. `/icon.svg`.
+   *
+   * Served by this extension so an icon can change without a host release, and so a host that has
+   * never heard of this extension still renders it. Omitted means no icon.
+   */
+  icon?: string
 }
 
 /** The MIME types a built frontend needs; anything else is served as octet-stream. */
@@ -138,11 +152,18 @@ export function mountUI(handler: UIHandler | undefined, spec: UISpec): UIHandler
     // which does not know that path and answers 404. The host then concludes there is no UI and
     // never offers it, with the extension serving one perfectly well.
     if (path === base + '/api/v1/ui') {
+      const body: Record<string, unknown> = { id: spec.id, base: spec.base, title: spec.title }
+      // Present only when declared: an empty object would make the host render an empty description
+      // where it could have shown nothing, and an empty icon path is a broken image, not no image.
+      if (spec.descriptions && Object.keys(spec.descriptions).length > 0) {
+        body['descriptions'] = spec.descriptions
+      }
+      if (spec.icon !== undefined && spec.icon !== '') body['icon'] = spec.icon
       send(
         res,
         200,
         'application/json; charset=utf-8',
-        JSON.stringify({ id: spec.id, base: spec.base, title: spec.title }),
+        JSON.stringify(body),
       )
       return
     }

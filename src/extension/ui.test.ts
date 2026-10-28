@@ -111,6 +111,41 @@ describe('mountUI', () => {
     expect(JSON.parse(r.body)).toEqual({ id: 'demo', base: '/ext/demo', title: 'Demo' })
   })
 
+  // The shelf needs to say what an extension is FOR, and only the extension knows. Declared here so
+  // the text lives beside the UI it describes rather than in the host.
+  it('reports the descriptions and icon it was given', async () => {
+    const h = mountUI(undefined, {
+      ...spec,
+      descriptions: { en: 'Browse repositories', zh: '浏览仓库' },
+      icon: '/icon.svg',
+    })
+    let body = ''
+    await h({ url: '/ext/demo/api/v1/ui' } as IncomingMessage, {
+      statusCode: 0,
+      setHeader() {},
+      end(b?: string | Buffer) {
+        body = b === undefined ? '' : b.toString()
+      },
+    } as unknown as ServerResponse)
+
+    expect(JSON.parse(body)).toEqual({
+      id: 'demo',
+      base: '/ext/demo',
+      title: 'Demo',
+      descriptions: { en: 'Browse repositories', zh: '浏览仓库' },
+      icon: '/icon.svg',
+    })
+  })
+
+  // Absent rather than empty: an empty object makes a host render a blank description where it could
+  // have shown nothing, and an empty icon path is a broken image.
+  it('omits both when they were not declared', async () => {
+    const r = await call('/ext/demo/api/v1/ui')
+    const body = JSON.parse(r.body) as Record<string, unknown>
+    expect(body['descriptions']).toBeUndefined()
+    expect(body['icon']).toBeUndefined()
+  })
+
   it('leaves paths outside the mount to the extension', async () => {
     const r = await call('/api/v1/health', (_req, res) => {
       res.statusCode = 200
